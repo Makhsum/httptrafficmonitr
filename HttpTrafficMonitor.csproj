@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWPF>true</UseWPF>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <RootNamespace>HttpTrafficMonitor</RootNamespace>
+    <AssemblyName>HttpTrafficMonitor</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="HttpTrafficMonitor.McpServer\**" />
+    <None Remove="HttpTrafficMonitor.McpServer\**" />
+    <Content Remove="HttpTrafficMonitor.McpServer\**" />
+    <EmbeddedResource Remove="HttpTrafficMonitor.McpServer\**" />
+    <Compile Remove="HttpTrafficMonitor.Bot\**" />
+    <None Remove="HttpTrafficMonitor.Bot\**" />
+    <Content Remove="HttpTrafficMonitor.Bot\**" />
+    <EmbeddedResource Remove="HttpTrafficMonitor.Bot\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Titanium.Web.Proxy" Version="3.1.1397" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="DiffPlex" Version="1.7.2" />
+    <PackageReference Include="LiveChartsCore.SkiaSharpView.WPF" Version="2.0.0-rc2" />
+    <PackageReference Include="WPF-UI" Version="3.0.5" />
+  </ItemGroup>
+
+</Project>

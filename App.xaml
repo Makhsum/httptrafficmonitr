@@ -1,0 +1,48 @@
+<Application x:Class="HttpTrafficMonitor.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:conv="clr-namespace:HttpTrafficMonitor.Converters"
+             StartupUri="Views/MainWindow.xaml"
+             ShutdownMode="OnMainWindowClose">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ui:ThemesDictionary Theme="Dark" />
+                <ui:ControlsDictionary />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Converters -->
+            <conv:MethodToColorConverter x:Key="MethodToColor"/>
+            <conv:StatusCodeToColorConverter x:Key="StatusCodeToColor"/>
+            <conv:StatusCodeToBackgroundConverter x:Key="StatusCodeToBackground"/>
+            <conv:NullToVisibilityConverter x:Key="NullToVisibility"/>
+            <conv:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
+            <conv:InverseBoolConverter x:Key="InverseBool"/>
+            <conv:NullableToDashConverter x:Key="NullableToDash"/>
+
+            <!-- Mono TextBox Style -->
+            <Style x:Key="MonoTextBox" TargetType="TextBox">
+                <Setter Property="FontFamily" Value="Cascadia Code,Consolas,Courier New"/>
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="IsReadOnly" Value="True"/>
+                <Setter Property="TextWrapping" Value="Wrap"/>
+                <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+                <Setter Property="HorizontalScrollBarVisibility" Value="Auto"/>
+                <Setter Property="Padding" Value="8"/>
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+                <Setter Property="BorderThickness" Value="1"/>
+            </Style>
+
+            <!-- Section Header Style -->
+            <Style x:Key="SectionHeader" TargetType="TextBlock">
+                <Setter Property="FontWeight" Value="SemiBold"/>
+                <Setter Property="FontSize" Value="12"/>
+                <Setter Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}"/>
+                <Setter Property="Margin" Value="0,8,0,4"/>
+            </Style>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

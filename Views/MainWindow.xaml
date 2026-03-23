@@ -1,0 +1,1283 @@
+<ui:FluentWindow x:Class="HttpTrafficMonitor.Views.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:vm="clr-namespace:HttpTrafficMonitor.ViewModels"
+        xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
+        Title="HTTP Traffic Monitor"
+        Width="1400" Height="850"
+        MinWidth="900" MinHeight="600"
+        WindowStartupLocation="CenterScreen"
+        WindowBackdropType="Mica"
+        ExtendsContentIntoTitleBar="True"
+        WindowCornerPreference="Round"
+        Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+        Closing="Window_Closing">
+
+    <ui:FluentWindow.DataContext>
+        <vm:MainViewModel/>
+    </ui:FluentWindow.DataContext>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ================================================================ -->
+        <!-- Row 0: TitleBar                                                  -->
+        <!-- ================================================================ -->
+        <ui:TitleBar x:Name="AppTitleBar"
+                     Grid.Row="0"
+                     Title="HTTP Traffic Monitor"
+                     ShowMaximize="True"
+                     ShowMinimize="True"
+                     ShowClose="True"
+                     CanMaximize="True"
+                     MouseLeftButtonDown="TitleBar_MouseLeftButtonDown"/>
+
+        <!-- ================================================================ -->
+        <!-- Row 1: Toolbar                                                   -->
+        <!-- ================================================================ -->
+        <Border Grid.Row="1"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="8,6">
+            <WrapPanel>
+                <!-- Core controls -->
+                <ui:Button Icon="{ui:SymbolIcon Play24}"
+                           Content="Start"
+                           Appearance="Primary"
+                           Command="{Binding StartCommand}"
+                           Margin="0,0,4,0"/>
+                <ui:Button Icon="{ui:SymbolIcon Stop24}"
+                           Content="Stop"
+                           Appearance="Danger"
+                           Command="{Binding StopCommand}"
+                           Margin="0,0,4,0"/>
+
+                <!-- Separator -->
+                <Rectangle Width="1" Height="24" Margin="6,0"
+                           Fill="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+
+                <ui:Button Icon="{ui:SymbolIcon Delete24}"
+                           Content="Clear"
+                           Command="{Binding ClearCommand}"
+                           Margin="0,0,4,0"/>
+                <ui:Button Icon="{ui:SymbolIcon ArrowDownload24}"
+                           Content="Export"
+                           Command="{Binding ExportCommand}"
+                           Margin="0,0,4,0"/>
+
+                <!-- Separator -->
+                <Rectangle Width="1" Height="24" Margin="6,0"
+                           Fill="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+
+                <ui:Button Icon="{ui:SymbolIcon ArrowRepeatAll24}"
+                           Content="Replay"
+                           Command="{Binding ReplayRequestCommand}"
+                           Margin="0,0,4,0"/>
+                <ui:Button Icon="{ui:SymbolIcon Compose24}"
+                           Content="Compose"
+                           Command="{Binding ComposeRequestCommand}"
+                           Margin="0,0,4,0"/>
+                <ui:Button Icon="{ui:SymbolIcon ArrowsBidirectional24}"
+                           Content="Compare"
+                           Command="{Binding CompareSelectedCommand}"
+                           Margin="0,0,4,0"/>
+
+                <!-- Separator -->
+                <Rectangle Width="1" Height="24" Margin="6,0"
+                           Fill="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+
+                <ui:Button Icon="{ui:SymbolIcon Save24}"
+                           Content="Save Session"
+                           Command="{Binding SaveSessionCommand}"
+                           Margin="0,0,4,0"/>
+                <ui:Button Icon="{ui:SymbolIcon FolderOpen24}"
+                           Content="Load Session"
+                           Command="{Binding LoadSessionCommand}"
+                           Margin="0,0,4,0"/>
+
+                <!-- Separator -->
+                <Rectangle Width="1" Height="24" Margin="6,0"
+                           Fill="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+
+                <!-- Advanced Filter with active indicator -->
+                <ui:Button Command="{Binding AdvancedFilterCommand}" Margin="0,0,4,0">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="Filter24" Margin="0,0,4,0"/>
+                        <TextBlock Text="Filter" VerticalAlignment="Center"/>
+                        <Ellipse Width="8" Height="8" Fill="#FF0078D4" Margin="4,0,0,0"
+                                 Visibility="{Binding IsAdvancedFilterActive, Converter={StaticResource BoolToVisibility}}"/>
+                    </StackPanel>
+                </ui:Button>
+
+                <!-- Separator -->
+                <Rectangle Width="1" Height="24" Margin="6,0"
+                           Fill="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+
+                <!-- Toggle switches -->
+                <ui:ToggleSwitch IsChecked="{Binding AutoScroll}"
+                                 OnContent="Auto-scroll" OffContent="Auto-scroll"
+                                 Margin="4,0"/>
+                <ui:ToggleSwitch IsChecked="{Binding IsPaused}"
+                                 OnContent="Paused" OffContent="Capture"
+                                 IsEnabled="{Binding IsMonitoring}"
+                                 Margin="4,0"/>
+                <CheckBox Content="Bookmarks Only"
+                          IsChecked="{Binding ShowBookmarksOnly}"
+                          VerticalAlignment="Center"
+                          Margin="4,0"/>
+
+                <!-- Separator -->
+                <Rectangle Width="1" Height="24" Margin="6,0"
+                           Fill="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+
+                <ui:ToggleSwitch IsChecked="{Binding IsDarkTheme}"
+                                 OnContent="Dark" OffContent="Light"
+                                 Margin="4,0"/>
+                <ui:Button Icon="{ui:SymbolIcon Accessibility24}"
+                           Command="{Binding ToggleBottomPanelCommand}"
+                           ToolTip="Toggle Bottom Panel"
+                           Margin="0,0,4,0"/>
+
+                <!-- Separator -->
+                <Rectangle Width="1" Height="24" Margin="6,0"
+                           Fill="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+
+                <!-- HTTPS Interception Warning -->
+                <ui:InfoBar IsOpen="{Binding IsMonitoring}"
+                            Severity="Warning"
+                            Title="HTTPS Interception Active"
+                            IsClosable="False"
+                            Padding="8,2"/>
+            </WrapPanel>
+        </Border>
+
+        <!-- ================================================================ -->
+        <!-- Row 2: Filter Bar                                                -->
+        <!-- ================================================================ -->
+        <Border Grid.Row="2"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="8,6">
+            <WrapPanel VerticalAlignment="Center">
+                <TextBlock Text="Search:" VerticalAlignment="Center" Margin="0,0,4,0"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                <ui:TextBox Width="220"
+                            PlaceholderText="Filter by URL, host, process..."
+                            Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged, Delay=200}"
+                            Margin="0,0,12,0"/>
+
+                <TextBlock Text="Process:" VerticalAlignment="Center" Margin="0,0,4,0"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                <ComboBox Width="150"
+                          ItemsSource="{Binding ProcessFilterOptions}"
+                          SelectedItem="{Binding SelectedProcessFilter}"
+                          IsEditable="True" IsTextSearchEnabled="True"
+                          Margin="0,0,12,0"/>
+
+                <TextBlock Text="Domain:" VerticalAlignment="Center" Margin="0,0,4,0"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                <ComboBox Width="180"
+                          ItemsSource="{Binding DomainFilterOptions}"
+                          SelectedItem="{Binding SelectedDomainFilter}"
+                          IsEditable="True" IsTextSearchEnabled="True"
+                          Margin="0,0,12,0"/>
+
+                <TextBlock Text="Method:" VerticalAlignment="Center" Margin="0,0,4,0"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                <ComboBox Width="120"
+                          ItemsSource="{Binding MethodFilterOptions}"
+                          SelectedItem="{Binding SelectedMethodFilter}"
+                          Margin="0,0,12,0"/>
+
+                <TextBlock Text="Status:" VerticalAlignment="Center" Margin="0,0,4,0"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                <ComboBox Width="150"
+                          ItemsSource="{Binding StatusFilterOptions}"
+                          SelectedItem="{Binding SelectedStatusFilter}"
+                          Margin="0,0,4,0"/>
+            </WrapPanel>
+        </Border>
+
+        <!-- ================================================================ -->
+        <!-- Row 3: Main Content Area                                         -->
+        <!-- ================================================================ -->
+        <Grid Grid.Row="3">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Top Area: Left DataGrid + Right Detail Panel -->
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" MinWidth="400"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="420" MinWidth="300"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- LEFT PANEL: Requests DataGrid -->
+                <DataGrid x:Name="RequestsGrid"
+                          Grid.Column="0"
+                          ItemsSource="{Binding FilteredRequests}"
+                          SelectedItem="{Binding SelectedRequest}"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True"
+                          SelectionMode="Extended"
+                          SelectionChanged="RequestsGrid_SelectionChanged"
+                          VirtualizingPanel.IsVirtualizing="True"
+                          VirtualizingPanel.VirtualizationMode="Recycling"
+                          VirtualizingPanel.IsContainerVirtualizable="True"
+                          EnableRowVirtualization="True"
+                          EnableColumnVirtualization="True"
+                          GridLinesVisibility="Horizontal"
+                          BorderThickness="0"
+                          Background="Transparent"
+                          RowBackground="Transparent"
+                          AlternatingRowBackground="{DynamicResource SubtleFillColorSecondaryBrush}"
+                          Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                          HeadersVisibility="Column"
+                          CanUserSortColumns="True"
+                          CanUserResizeColumns="True"
+                          CanUserReorderColumns="True">
+
+                    <!-- Context Menu -->
+                    <DataGrid.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Copy URL" Command="{Binding CopyUrlCommand}"
+                                      InputGestureText="Ctrl+U"/>
+                            <MenuItem Header="Copy as cURL" Command="{Binding CopyCurlCommand}"
+                                      InputGestureText="Ctrl+Shift+C"/>
+                            <Separator/>
+                            <MenuItem Header="Copy Request Headers" Command="{Binding CopyRequestHeadersCommand}"/>
+                            <MenuItem Header="Copy Request Body" Command="{Binding CopyRequestBodyCommand}"/>
+                            <MenuItem Header="Copy Response Headers" Command="{Binding CopyResponseHeadersCommand}"/>
+                            <MenuItem Header="Copy Response Body" Command="{Binding CopyResponseBodyCommand}"/>
+                            <Separator/>
+                            <MenuItem Header="Save Request..." Command="{Binding SaveRequestCommand}"/>
+                            <MenuItem Header="Save Response..." Command="{Binding SaveResponseCommand}"/>
+                            <Separator/>
+                            <MenuItem Header="Replay Request..." Command="{Binding ReplayRequestCommand}"/>
+                            <MenuItem Header="Toggle Bookmark" Command="{Binding ToggleBookmarkCommand}"
+                                      InputGestureText="Ctrl+B"/>
+                            <Separator/>
+                            <MenuItem Header="Exclude Domain" Command="{Binding ExcludeDomainCommand}"/>
+                            <MenuItem Header="Exclude Process" Command="{Binding ExcludeProcessCommand}"/>
+                            <Separator/>
+                            <MenuItem Header="Export Selected..." Command="{Binding ExportSelectedCommand}"/>
+                        </ContextMenu>
+                    </DataGrid.ContextMenu>
+
+                    <!-- Row Style with IsSlow trigger -->
+                    <DataGrid.RowStyle>
+                        <Style TargetType="DataGridRow">
+                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsSlow}" Value="True">
+                                    <Setter Property="Background" Value="#33FF4444"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.RowStyle>
+
+                    <!-- Column Header Style -->
+                    <DataGrid.ColumnHeaderStyle>
+                        <Style TargetType="DataGridColumnHeader">
+                            <Setter Property="Background" Value="{DynamicResource SubtleFillColorSecondaryBrush}"/>
+                            <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
+                            <Setter Property="Padding" Value="8,6"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Setter Property="FontSize" Value="11"/>
+                            <Setter Property="BorderBrush" Value="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+                            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                        </Style>
+                    </DataGrid.ColumnHeaderStyle>
+
+                    <DataGrid.Columns>
+                        <!-- Bookmark Column -->
+                        <DataGridTemplateColumn Header="" Width="30" CanUserSort="False">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding BookmarkIcon}"
+                                               FontSize="14" HorizontalAlignment="Center"
+                                               Cursor="Hand" ToolTip="Toggle Bookmark"
+                                               Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}">
+                                        <TextBlock.InputBindings>
+                                            <MouseBinding MouseAction="LeftClick"
+                                                          Command="{Binding DataContext.ToggleBookmarkCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"/>
+                                        </TextBlock.InputBindings>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- # Column -->
+                        <DataGridTextColumn Header="#" Binding="{Binding Id}" Width="55">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                    <Setter Property="Padding" Value="4,0"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <!-- Time Column -->
+                        <DataGridTextColumn Header="Time" Binding="{Binding TimestampFormatted}" Width="95">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                    <Setter Property="Padding" Value="4,0"/>
+                                    <Setter Property="FontFamily" Value="Cascadia Code,Consolas,Courier New"/>
+                                    <Setter Property="FontSize" Value="11"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <!-- Process Column -->
+                        <DataGridTextColumn Header="Process" Binding="{Binding ProcessName}" Width="100">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                    <Setter Property="Padding" Value="4,0"/>
+                                    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <!-- Method Column (Colored Badge) -->
+                        <DataGridTemplateColumn Header="Method" Width="70" SortMemberPath="Method">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Border CornerRadius="4" Padding="6,2"
+                                            HorizontalAlignment="Center"
+                                            Background="{Binding Method, Converter={StaticResource StatusCodeToBackground}, ConverterParameter=method}">
+                                        <TextBlock Text="{Binding Method}"
+                                                   FontWeight="SemiBold" FontSize="11"
+                                                   Foreground="{Binding Method, Converter={StaticResource MethodToColor}}"
+                                                   HorizontalAlignment="Center"/>
+                                    </Border>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- URL Column -->
+                        <DataGridTextColumn Header="URL" Binding="{Binding Url}" Width="*">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                    <Setter Property="Padding" Value="4,0"/>
+                                    <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                    <Setter Property="ToolTip" Value="{Binding Url}"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <!-- Status Column (Colored) -->
+                        <DataGridTemplateColumn Header="Status" Width="65" SortMemberPath="StatusCode">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding StatusCode, Converter={StaticResource NullableToDash}}"
+                                               FontWeight="SemiBold" FontSize="11"
+                                               Foreground="{Binding StatusCode, Converter={StaticResource StatusCodeToColor}}"
+                                               HorizontalAlignment="Center" Padding="4,0"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- Size Column -->
+                        <DataGridTextColumn Header="Size" Binding="{Binding ResponseSizeFormatted}" Width="75">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                    <Setter Property="Padding" Value="4,0"/>
+                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+
+                        <!-- Duration Column -->
+                        <DataGridTextColumn Header="Duration" Binding="{Binding DurationFormatted}" Width="80">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Foreground" Value="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                    <Setter Property="Padding" Value="4,0"/>
+                                    <Setter Property="HorizontalAlignment" Value="Right"/>
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <!-- Grid Splitter (left/right) -->
+                <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center"
+                              VerticalAlignment="Stretch"
+                              Background="Transparent"
+                              ShowsPreview="True"/>
+
+                <!-- RIGHT PANEL: Detail Tabs -->
+                <Border Grid.Column="2"
+                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                        BorderThickness="1,0,0,0">
+
+                    <Grid>
+                        <!-- Placeholder when nothing selected -->
+                        <TextBlock Text="Select a request to view details"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                   FontSize="14"
+                                   Visibility="{Binding SelectedRequest, Converter={StaticResource NullToVisibility}, ConverterParameter=invert}"/>
+
+                        <!-- Detail TabControl -->
+                        <TabControl Visibility="{Binding SelectedRequest, Converter={StaticResource NullToVisibility}}"
+                                    Background="Transparent" BorderThickness="0" Padding="0">
+
+                            <!-- Tab 1: Request -->
+                            <TabItem Header="Request">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
+                                    <StackPanel>
+                                        <!-- Request Line -->
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                            <Border CornerRadius="4" Padding="8,4" Margin="0,0,8,0"
+                                                    Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                                                <TextBlock Text="{Binding SelectedRequest.Method}"
+                                                           FontWeight="Bold" FontSize="14"
+                                                           Foreground="{Binding SelectedRequest.Method, Converter={StaticResource MethodToColor}}"/>
+                                            </Border>
+                                            <TextBlock Text="{Binding SelectedRequest.Url}"
+                                                       FontSize="12" VerticalAlignment="Center"
+                                                       TextWrapping="Wrap"
+                                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                                        </StackPanel>
+
+                                        <!-- Request Headers -->
+                                        <TextBlock Text="Request Headers" Style="{StaticResource SectionHeader}"/>
+                                        <TextBox Text="{Binding SelectedRequest.RequestHeaders, Mode=OneWay}"
+                                                 Style="{StaticResource MonoTextBox}"
+                                                 MaxHeight="250"/>
+
+                                        <!-- Request Body -->
+                                        <TextBlock Text="Request Body" Style="{StaticResource SectionHeader}"/>
+                                        <TextBox Text="{Binding FormattedRequestBody, Mode=OneWay}"
+                                                 Style="{StaticResource MonoTextBox}"
+                                                 MaxHeight="350"/>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </TabItem>
+
+                            <!-- Tab 2: Response -->
+                            <TabItem Header="Response">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
+                                    <StackPanel>
+                                        <!-- Status Code (large, colored) -->
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                            <TextBlock Text="{Binding SelectedRequest.StatusCode, Converter={StaticResource NullableToDash}}"
+                                                       FontSize="28" FontWeight="Bold"
+                                                       Foreground="{Binding SelectedRequest.StatusCode, Converter={StaticResource StatusCodeToColor}}"
+                                                       Margin="0,0,12,0"/>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="11">
+                                                    <Run Text="Size: "/><Run Text="{Binding SelectedRequest.ResponseSizeFormatted, Mode=OneWay}"/>
+                                                </TextBlock>
+                                                <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="11">
+                                                    <Run Text="Duration: "/><Run Text="{Binding SelectedRequest.DurationFormatted, Mode=OneWay}"/>
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </StackPanel>
+
+                                        <!-- Response Headers -->
+                                        <TextBlock Text="Response Headers" Style="{StaticResource SectionHeader}"/>
+                                        <TextBox Text="{Binding SelectedRequest.ResponseHeaders, Mode=OneWay}"
+                                                 Style="{StaticResource MonoTextBox}"
+                                                 MaxHeight="250"/>
+
+                                        <!-- Response Body -->
+                                        <TextBlock Text="Response Body" Style="{StaticResource SectionHeader}"/>
+                                        <TextBox Text="{Binding FormattedResponseBody, Mode=OneWay}"
+                                                 Style="{StaticResource MonoTextBox}"
+                                                 MaxHeight="350"/>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </TabItem>
+
+                            <!-- Tab 3: Timing -->
+                            <TabItem Header="Timing">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
+                                    <StackPanel>
+                                        <TextBlock Text="Request Timing" Style="{StaticResource SectionHeader}" FontSize="14"/>
+
+                                        <!-- Timing Info Grid -->
+                                        <Grid Margin="0,8,0,16">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+
+                                            <TextBlock Grid.Row="0" Grid.Column="0" Text="Sent:" FontWeight="SemiBold" Margin="0,2,12,2"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SelectedRequest.TimestampFormatted}"
+                                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,2"/>
+
+                                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Received:" FontWeight="SemiBold" Margin="0,2,12,2"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                            <TextBlock Grid.Row="1" Grid.Column="1"
+                                                       Text="{Binding SelectedRequest.ResponseTime, Converter={StaticResource NullableToDash}, StringFormat='{}{0:HH:mm:ss.fff}'}"
+                                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,2"/>
+
+                                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Duration:" FontWeight="SemiBold" Margin="0,2,12,2"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SelectedRequest.DurationFormatted}"
+                                                       Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}" FontWeight="SemiBold" Margin="0,2"/>
+
+                                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Size:" FontWeight="SemiBold" Margin="0,2,12,2"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding SelectedRequest.ResponseSizeFormatted}"
+                                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,2"/>
+
+                                            <TextBlock Grid.Row="4" Grid.Column="0" Text="Content Type:" FontWeight="SemiBold" Margin="0,2,12,2"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                            <TextBlock Grid.Row="4" Grid.Column="1"
+                                                       Text="{Binding SelectedRequest.ResponseContentType, Converter={StaticResource NullableToDash}}"
+                                                       Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,2"/>
+                                        </Grid>
+
+                                        <!-- Performance Breakdown -->
+                                        <TextBlock Text="Performance Breakdown" Style="{StaticResource SectionHeader}"/>
+
+                                        <!-- DNS Lookup -->
+                                        <StackPanel Margin="0,6,0,0">
+                                            <DockPanel>
+                                                <TextBlock Text="DNS Lookup" Width="110"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="11"/>
+                                                <TextBlock HorizontalAlignment="Right"
+                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontSize="11"
+                                                           Text="{Binding SelectedRequest.DnsLookupMs, Converter={StaticResource NullableToDash}, StringFormat='{}{0:F0} ms'}"/>
+                                            </DockPanel>
+                                            <Border Height="6" CornerRadius="3" Margin="0,2,0,0"
+                                                    Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                                                <Border CornerRadius="3" HorizontalAlignment="Left"
+                                                        Background="#FF0078D4"
+                                                        Width="{Binding SelectedRequest.DnsLookupMs, FallbackValue=0}"/>
+                                            </Border>
+                                        </StackPanel>
+
+                                        <!-- TCP Connect -->
+                                        <StackPanel Margin="0,6,0,0">
+                                            <DockPanel>
+                                                <TextBlock Text="TCP Connect" Width="110"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="11"/>
+                                                <TextBlock HorizontalAlignment="Right"
+                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontSize="11"
+                                                           Text="{Binding SelectedRequest.TcpConnectMs, Converter={StaticResource NullableToDash}, StringFormat='{}{0:F0} ms'}"/>
+                                            </DockPanel>
+                                            <Border Height="6" CornerRadius="3" Margin="0,2,0,0"
+                                                    Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                                                <Border CornerRadius="3" HorizontalAlignment="Left"
+                                                        Background="#FF107C10"
+                                                        Width="{Binding SelectedRequest.TcpConnectMs, FallbackValue=0}"/>
+                                            </Border>
+                                        </StackPanel>
+
+                                        <!-- TLS Handshake -->
+                                        <StackPanel Margin="0,6,0,0">
+                                            <DockPanel>
+                                                <TextBlock Text="TLS Handshake" Width="110"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="11"/>
+                                                <TextBlock HorizontalAlignment="Right"
+                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontSize="11"
+                                                           Text="{Binding SelectedRequest.TlsHandshakeMs, Converter={StaticResource NullableToDash}, StringFormat='{}{0:F0} ms'}"/>
+                                            </DockPanel>
+                                            <Border Height="6" CornerRadius="3" Margin="0,2,0,0"
+                                                    Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                                                <Border CornerRadius="3" HorizontalAlignment="Left"
+                                                        Background="#FF6B45BA"
+                                                        Width="{Binding SelectedRequest.TlsHandshakeMs, FallbackValue=0}"/>
+                                            </Border>
+                                        </StackPanel>
+
+                                        <!-- Time to First Byte -->
+                                        <StackPanel Margin="0,6,0,0">
+                                            <DockPanel>
+                                                <TextBlock Text="TTFB" Width="110"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="11"/>
+                                                <TextBlock HorizontalAlignment="Right"
+                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontSize="11"
+                                                           Text="{Binding SelectedRequest.TimeToFirstByteMs, Converter={StaticResource NullableToDash}, StringFormat='{}{0:F0} ms'}"/>
+                                            </DockPanel>
+                                            <Border Height="6" CornerRadius="3" Margin="0,2,0,0"
+                                                    Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                                                <Border CornerRadius="3" HorizontalAlignment="Left"
+                                                        Background="#FF9D5D00"
+                                                        Width="{Binding SelectedRequest.TimeToFirstByteMs, FallbackValue=0}"/>
+                                            </Border>
+                                        </StackPanel>
+
+                                        <!-- Content Download -->
+                                        <StackPanel Margin="0,6,0,0">
+                                            <DockPanel>
+                                                <TextBlock Text="Download" Width="110"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="11"/>
+                                                <TextBlock HorizontalAlignment="Right"
+                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontSize="11"
+                                                           Text="{Binding SelectedRequest.ContentDownloadMs, Converter={StaticResource NullableToDash}, StringFormat='{}{0:F0} ms'}"/>
+                                            </DockPanel>
+                                            <Border Height="6" CornerRadius="3" Margin="0,2,0,0"
+                                                    Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                                                <Border CornerRadius="3" HorizontalAlignment="Left"
+                                                        Background="#FF00859B"
+                                                        Width="{Binding SelectedRequest.ContentDownloadMs, FallbackValue=0}"/>
+                                            </Border>
+                                        </StackPanel>
+
+                                        <!-- Total Duration Bar -->
+                                        <StackPanel Margin="0,16,0,0">
+                                            <TextBlock Text="Total" Style="{StaticResource SectionHeader}"/>
+                                            <Border Height="10" CornerRadius="5"
+                                                    Background="{DynamicResource SubtleFillColorSecondaryBrush}">
+                                                <Border CornerRadius="5" HorizontalAlignment="Left"
+                                                        Background="{DynamicResource AccentTextFillColorPrimaryBrush}">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="MinWidth" Value="10"/>
+                                                        </Style>
+                                                    </Border.Style>
+                                                </Border>
+                                            </Border>
+                                            <TextBlock Text="{Binding SelectedRequest.DurationFormatted}"
+                                                       FontWeight="Bold" FontSize="16" Margin="0,4,0,0"
+                                                       Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </TabItem>
+
+                            <!-- Tab 4: Certificate -->
+                            <TabItem Header="Certificate">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
+                                    <StackPanel>
+                                        <!-- No TLS info -->
+                                        <TextBlock Text="No TLS certificate information available for this request."
+                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                                   Margin="0,8"
+                                                   Visibility="{Binding SelectedRequest.HasTlsInfo, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}"/>
+
+                                        <!-- TLS info panel -->
+                                        <StackPanel Visibility="{Binding SelectedRequest.HasTlsInfo, Converter={StaticResource BoolToVisibility}}">
+                                            <TextBlock Text="TLS Connection" Style="{StaticResource SectionHeader}" FontSize="14"/>
+
+                                            <Grid Margin="0,8,0,12">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+
+                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="TLS Version:" FontWeight="SemiBold" Margin="0,2,12,2"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SelectedRequest.TlsInfo.TlsVersion}"
+                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,2"/>
+
+                                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Cipher Suite:" FontWeight="SemiBold" Margin="0,2,12,2"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedRequest.TlsInfo.CipherSuite}"
+                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,2"
+                                                           TextWrapping="Wrap"/>
+
+                                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Key Size:" FontWeight="SemiBold" Margin="0,2,12,2"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                <TextBlock Grid.Row="2" Grid.Column="1"
+                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,2">
+                                                    <Run Text="{Binding SelectedRequest.TlsInfo.KeySize, Mode=OneWay}"/><Run Text=" bits"/>
+                                                </TextBlock>
+                                            </Grid>
+
+                                            <TextBlock Text="Certificate Details" Style="{StaticResource SectionHeader}"/>
+                                            <Grid Margin="0,8,0,12">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                    <RowDefinition Height="Auto"/>
+                                                </Grid.RowDefinitions>
+
+                                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Subject:" FontWeight="SemiBold" Margin="0,2,12,2"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SelectedRequest.TlsInfo.Subject}"
+                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,2" TextWrapping="Wrap"/>
+
+                                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Issuer:" FontWeight="SemiBold" Margin="0,2,12,2"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedRequest.TlsInfo.Issuer}"
+                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,2" TextWrapping="Wrap"/>
+
+                                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Valid From:" FontWeight="SemiBold" Margin="0,2,12,2"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                <TextBlock Grid.Row="2" Grid.Column="1"
+                                                           Text="{Binding SelectedRequest.TlsInfo.NotBefore, StringFormat='{}{0:yyyy-MM-dd HH:mm:ss}'}"
+                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,2"/>
+
+                                                <TextBlock Grid.Row="3" Grid.Column="0" Text="Valid Until:" FontWeight="SemiBold" Margin="0,2,12,2"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                <TextBlock Grid.Row="3" Grid.Column="1"
+                                                           Text="{Binding SelectedRequest.TlsInfo.NotAfter, StringFormat='{}{0:yyyy-MM-dd HH:mm:ss}'}"
+                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,2"/>
+
+                                                <TextBlock Grid.Row="4" Grid.Column="0" Text="Thumbprint:" FontWeight="SemiBold" Margin="0,2,12,2"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding SelectedRequest.TlsInfo.Thumbprint}"
+                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,2"
+                                                           FontFamily="Cascadia Code,Consolas,Courier New" FontSize="11"
+                                                           TextWrapping="Wrap"/>
+
+                                                <TextBlock Grid.Row="5" Grid.Column="0" Text="Serial:" FontWeight="SemiBold" Margin="0,2,12,2"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                                <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding SelectedRequest.TlsInfo.SerialNumber}"
+                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,2"
+                                                           FontFamily="Cascadia Code,Consolas,Courier New" FontSize="11"
+                                                           TextWrapping="Wrap"/>
+                                            </Grid>
+
+                                            <!-- Certificate Chain -->
+                                            <TextBlock Text="Certificate Chain" Style="{StaticResource SectionHeader}"/>
+                                            <ItemsControl ItemsSource="{Binding SelectedRequest.TlsInfo.Chain}" Margin="0,4,0,8">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                                                                CornerRadius="6" Padding="10,8" Margin="0,2">
+                                                            <StackPanel>
+                                                                <TextBlock Text="{Binding Subject}" FontWeight="SemiBold"
+                                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" TextWrapping="Wrap"/>
+                                                                <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="11">
+                                                                    <Run Text="Issuer: "/><Run Text="{Binding Issuer, Mode=OneWay}"/>
+                                                                </TextBlock>
+                                                                <TextBlock Foreground="{DynamicResource TextFillColorTertiaryBrush}" FontSize="10"
+                                                                           FontFamily="Cascadia Code,Consolas,Courier New">
+                                                                    <Run Text="{Binding Thumbprint, Mode=OneWay}"/>
+                                                                </TextBlock>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+
+                                            <!-- Certificate Errors -->
+                                            <StackPanel Visibility="{Binding SelectedRequest.TlsInfo.HasErrors, Converter={StaticResource BoolToVisibility}}">
+                                                <TextBlock Text="Certificate Errors" Style="{StaticResource SectionHeader}"
+                                                           Foreground="{DynamicResource SystemFillColorCriticalBrush}"/>
+                                                <Border Background="#33C42B1C" CornerRadius="6" Padding="10,8" Margin="0,4">
+                                                    <TextBlock Text="{Binding SelectedRequest.TlsInfo.ErrorSummary}"
+                                                               Foreground="{DynamicResource SystemFillColorCriticalBrush}"
+                                                               TextWrapping="Wrap"/>
+                                                </Border>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </TabItem>
+
+                            <!-- Tab 5: Decoded -->
+                            <TabItem Header="Decoded">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
+                                    <StackPanel>
+                                        <!-- Decoded Request -->
+                                        <TextBlock Text="Decoded Request" Style="{StaticResource SectionHeader}" FontSize="14"/>
+                                        <TextBlock Text="{Binding DecodedRequestInfo}"
+                                                   Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"
+                                                   FontSize="11" Margin="0,2,0,6"
+                                                   FontStyle="Italic"/>
+                                        <TextBox Text="{Binding DecodedRequestContent, Mode=OneWay}"
+                                                 Style="{StaticResource MonoTextBox}"
+                                                 MaxHeight="300"/>
+
+                                        <!-- Decoded Response -->
+                                        <TextBlock Text="Decoded Response" Style="{StaticResource SectionHeader}" FontSize="14"
+                                                   Margin="0,16,0,4"/>
+                                        <TextBlock Text="{Binding DecodedResponseInfo}"
+                                                   Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"
+                                                   FontSize="11" Margin="0,2,0,6"
+                                                   FontStyle="Italic"/>
+                                        <TextBox Text="{Binding DecodedResponseContent, Mode=OneWay}"
+                                                 Style="{StaticResource MonoTextBox}"
+                                                 MaxHeight="300"/>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </TabItem>
+
+                            <!-- Tab 6: Exclusions -->
+                            <TabItem Header="Exclusions">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="12">
+                                    <StackPanel>
+                                        <TextBlock Text="Excluded Domains" Style="{StaticResource SectionHeader}" FontSize="14"/>
+                                        <TextBlock Text="One domain per line. Matching requests will be ignored."
+                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                                   FontSize="11" Margin="0,0,0,6"/>
+                                        <TextBox Text="{Binding ExcludedDomainsText, UpdateSourceTrigger=PropertyChanged}"
+                                                 AcceptsReturn="True"
+                                                 TextWrapping="Wrap"
+                                                 VerticalScrollBarVisibility="Auto"
+                                                 MinHeight="120" MaxHeight="250"
+                                                 FontFamily="Cascadia Code,Consolas,Courier New"
+                                                 FontSize="12"
+                                                 Padding="8"
+                                                 Background="Transparent"
+                                                 Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                 BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                                 BorderThickness="1"/>
+
+                                        <TextBlock Text="Excluded Processes" Style="{StaticResource SectionHeader}" FontSize="14"
+                                                   Margin="0,16,0,4"/>
+                                        <TextBlock Text="One process name per line. Matching requests will be ignored."
+                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                                   FontSize="11" Margin="0,0,0,6"/>
+                                        <TextBox Text="{Binding ExcludedProcessesText, UpdateSourceTrigger=PropertyChanged}"
+                                                 AcceptsReturn="True"
+                                                 TextWrapping="Wrap"
+                                                 VerticalScrollBarVisibility="Auto"
+                                                 MinHeight="120" MaxHeight="250"
+                                                 FontFamily="Cascadia Code,Consolas,Courier New"
+                                                 FontSize="12"
+                                                 Padding="8"
+                                                 Background="Transparent"
+                                                 Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                                 BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                                 BorderThickness="1"/>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </TabItem>
+                        </TabControl>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- GridSplitter between top and bottom panels -->
+            <GridSplitter Grid.Row="1" Height="5" HorizontalAlignment="Stretch"
+                          VerticalAlignment="Center"
+                          Background="Transparent"
+                          ShowsPreview="True"
+                          Visibility="{Binding ShowBottomPanel, Converter={StaticResource BoolToVisibility}}"/>
+
+            <!-- BOTTOM PANEL (Collapsible) -->
+            <Border Grid.Row="2"
+                    MinHeight="200" MaxHeight="400"
+                    Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                    BorderThickness="0,1,0,0"
+                    Visibility="{Binding ShowBottomPanel, Converter={StaticResource BoolToVisibility}}">
+                <TabControl Background="Transparent" BorderThickness="0" Padding="0">
+
+                    <!-- Graphs Tab -->
+                    <TabItem Header="Graphs">
+                        <Grid Margin="8">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- RPS Chart -->
+                            <Border Grid.Row="0" Grid.Column="0" Margin="4"
+                                    Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                                    CornerRadius="6" Padding="8">
+                                <StackPanel>
+                                    <TextBlock Text="Requests Per Second" FontWeight="SemiBold" FontSize="11"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
+                                    <lvc:CartesianChart Height="120"
+                                                        Series="{Binding GraphsVm.RpsSeries}"
+                                                        XAxes="{Binding GraphsVm.RpsXAxes}"
+                                                        YAxes="{Binding GraphsVm.RpsYAxes}"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Bandwidth Chart -->
+                            <Border Grid.Row="0" Grid.Column="1" Margin="4"
+                                    Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                                    CornerRadius="6" Padding="8">
+                                <StackPanel>
+                                    <TextBlock Text="Bandwidth (KB/s)" FontWeight="SemiBold" FontSize="11"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
+                                    <lvc:CartesianChart Height="120"
+                                                        Series="{Binding GraphsVm.BandwidthSeries}"
+                                                        XAxes="{Binding GraphsVm.BandwidthXAxes}"
+                                                        YAxes="{Binding GraphsVm.BandwidthYAxes}"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Domain Pie Chart -->
+                            <Border Grid.Row="1" Grid.Column="0" Margin="4"
+                                    Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                                    CornerRadius="6" Padding="8">
+                                <StackPanel>
+                                    <TextBlock Text="Top Domains" FontWeight="SemiBold" FontSize="11"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
+                                    <lvc:PieChart Height="120"
+                                                  Series="{Binding GraphsVm.DomainPieSeries}"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Process Pie Chart -->
+                            <Border Grid.Row="1" Grid.Column="1" Margin="4"
+                                    Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                                    CornerRadius="6" Padding="8">
+                                <StackPanel>
+                                    <TextBlock Text="Top Processes" FontWeight="SemiBold" FontSize="11"
+                                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
+                                    <lvc:PieChart Height="120"
+                                                  Series="{Binding GraphsVm.ProcessPieSeries}"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </TabItem>
+
+                    <!-- Alerts Tab -->
+                    <TabItem Header="Alerts">
+                        <Grid Margin="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="5"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Left: Rules DataGrid + Add Rule Form -->
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Alert Rules" Style="{StaticResource SectionHeader}"/>
+                                <DataGrid ItemsSource="{Binding AlertsVm.Rules}"
+                                          SelectedItem="{Binding AlertsVm.SelectedRule}"
+                                          AutoGenerateColumns="False" IsReadOnly="True"
+                                          Height="100" Margin="0,4,0,8"
+                                          Background="Transparent"
+                                          BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                          BorderThickness="1"
+                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+                                    <DataGrid.Columns>
+                                        <DataGridCheckBoxColumn Header="On" Binding="{Binding IsEnabled}" Width="40"/>
+                                        <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="*"/>
+                                        <DataGridTextColumn Header="Type" Binding="{Binding Type}" Width="90"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+
+                                <!-- Add Rule Form -->
+                                <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                                        CornerRadius="6" Padding="10,8" Margin="0,4">
+                                    <StackPanel>
+                                        <TextBlock Text="Add Alert Rule" FontWeight="SemiBold" FontSize="11"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,6"/>
+                                        <WrapPanel>
+                                            <StackPanel Margin="0,0,8,4">
+                                                <TextBlock Text="Name" FontSize="10"
+                                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                                <ui:TextBox Text="{Binding AlertsVm.NewRuleName, UpdateSourceTrigger=PropertyChanged}"
+                                                           Width="140" PlaceholderText="Rule name"/>
+                                            </StackPanel>
+                                            <StackPanel Margin="0,0,8,4">
+                                                <TextBlock Text="Type" FontSize="10"
+                                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                                <ComboBox ItemsSource="{Binding AlertsVm.RuleTypes}"
+                                                          SelectedItem="{Binding AlertsVm.NewRuleType}"
+                                                          Width="120"/>
+                                            </StackPanel>
+                                            <StackPanel Margin="0,0,8,4">
+                                                <TextBlock Text="Pattern" FontSize="10"
+                                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                                <ui:TextBox Text="{Binding AlertsVm.NewRulePattern, UpdateSourceTrigger=PropertyChanged}"
+                                                           Width="140" PlaceholderText="Pattern"/>
+                                            </StackPanel>
+                                            <ui:Button Content="Add" Appearance="Primary"
+                                                       Command="{Binding AlertsVm.AddRuleCommand}"
+                                                       VerticalAlignment="Bottom" Margin="0,0,4,4"/>
+                                            <ui:Button Content="Remove" Appearance="Danger"
+                                                       Command="{Binding AlertsVm.RemoveRuleCommand}"
+                                                       VerticalAlignment="Bottom" Margin="0,0,0,4"/>
+                                        </WrapPanel>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+
+                            <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center"
+                                          Background="Transparent"/>
+
+                            <!-- Right: Alert Events -->
+                            <StackPanel Grid.Column="2">
+                                <DockPanel>
+                                    <TextBlock Text="Alert Events" Style="{StaticResource SectionHeader}"/>
+                                    <ui:Button Content="Clear" Appearance="Secondary"
+                                               Command="{Binding AlertsVm.ClearAlertsCommand}"
+                                               HorizontalAlignment="Right" Padding="8,2"
+                                               FontSize="11"/>
+                                </DockPanel>
+                                <ListBox ItemsSource="{Binding AlertsVm.AlertEvents}"
+                                         SelectedItem="{Binding AlertsVm.SelectedAlert}"
+                                         Height="180" Margin="0,4"
+                                         Background="Transparent"
+                                         BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                         BorderThickness="1"
+                                         Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Margin="4,2">
+                                                <DockPanel>
+                                                    <TextBlock Text="{Binding TimestampFormatted}"
+                                                               Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                                               FontSize="10"
+                                                               FontFamily="Cascadia Code,Consolas,Courier New"/>
+                                                    <TextBlock Text="{Binding Rule.Name}"
+                                                               FontWeight="SemiBold" FontSize="11"
+                                                               Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"
+                                                               Margin="8,0,0,0"/>
+                                                </DockPanel>
+                                                <TextBlock Text="{Binding Message}"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                           FontSize="11" TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </StackPanel>
+                        </Grid>
+                    </TabItem>
+
+                    <!-- Auto-Responder Tab -->
+                    <TabItem Header="Auto-Responder">
+                        <Grid Margin="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="5"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Left: Enable + Rules DataGrid -->
+                            <StackPanel Grid.Column="0">
+                                <DockPanel Margin="0,0,0,6">
+                                    <TextBlock Text="Auto-Responder" Style="{StaticResource SectionHeader}"/>
+                                    <CheckBox Content="Enable" IsChecked="{Binding AutoResponderVm.IsEnabled}"
+                                              HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                                </DockPanel>
+                                <DataGrid ItemsSource="{Binding AutoResponderVm.Rules}"
+                                          SelectedItem="{Binding AutoResponderVm.SelectedRule}"
+                                          AutoGenerateColumns="False" IsReadOnly="True"
+                                          Height="180" Margin="0,4"
+                                          Background="Transparent"
+                                          BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                                          BorderThickness="1"
+                                          Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+                                    <DataGrid.Columns>
+                                        <DataGridCheckBoxColumn Header="On" Binding="{Binding IsEnabled}" Width="40"/>
+                                        <DataGridTextColumn Header="URL Pattern" Binding="{Binding UrlPattern}" Width="*"/>
+                                        <DataGridTextColumn Header="Method" Binding="{Binding HttpMethod}" Width="65"/>
+                                        <DataGridTextColumn Header="Status" Binding="{Binding ResponseStatusCode}" Width="55"/>
+                                        <DataGridTextColumn Header="Matches" Binding="{Binding MatchCount}" Width="60"/>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </StackPanel>
+
+                            <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Center"
+                                          Background="Transparent"/>
+
+                            <!-- Right: Rule Editor Form -->
+                            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto">
+                                <Border Background="{DynamicResource SubtleFillColorSecondaryBrush}"
+                                        CornerRadius="6" Padding="12,10" Margin="4,0,0,0">
+                                    <StackPanel>
+                                        <TextBlock Text="Rule Editor" FontWeight="SemiBold" FontSize="12"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,8"/>
+
+                                        <TextBlock Text="URL Pattern" FontSize="10"
+                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                        <ui:TextBox Text="{Binding AutoResponderVm.NewUrlPattern, UpdateSourceTrigger=PropertyChanged}"
+                                                    PlaceholderText="e.g. /api/users or regex pattern"
+                                                    Margin="0,2,0,6"/>
+
+                                        <WrapPanel Margin="0,0,0,6">
+                                            <CheckBox Content="Regex" IsChecked="{Binding AutoResponderVm.NewIsRegex}"
+                                                      Margin="0,0,12,0"/>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="Method:" VerticalAlignment="Center"
+                                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                           FontSize="11" Margin="0,0,4,0"/>
+                                                <ComboBox ItemsSource="{x:Static vm:AutoResponderViewModel.HttpMethods}"
+                                                          SelectedItem="{Binding AutoResponderVm.NewHttpMethod}"
+                                                          Width="90"/>
+                                            </StackPanel>
+                                        </WrapPanel>
+
+                                        <WrapPanel Margin="0,0,0,6">
+                                            <StackPanel Margin="0,0,12,0">
+                                                <TextBlock Text="Status Code" FontSize="10"
+                                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                                <TextBox Text="{Binding AutoResponderVm.NewStatusCode}" Width="70"/>
+                                            </StackPanel>
+                                            <StackPanel>
+                                                <TextBlock Text="Delay (ms)" FontSize="10"
+                                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                                <TextBox Text="{Binding AutoResponderVm.NewDelayMs}" Width="70"/>
+                                            </StackPanel>
+                                        </WrapPanel>
+
+                                        <TextBlock Text="Response Headers" FontSize="10"
+                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                        <TextBox Text="{Binding AutoResponderVm.NewResponseHeaders, UpdateSourceTrigger=PropertyChanged}"
+                                                 AcceptsReturn="True" TextWrapping="Wrap"
+                                                 MinHeight="40" MaxHeight="80"
+                                                 FontFamily="Cascadia Code,Consolas,Courier New" FontSize="11"
+                                                 Margin="0,2,0,6"/>
+
+                                        <TextBlock Text="Response Body" FontSize="10"
+                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                        <TextBox Text="{Binding AutoResponderVm.NewResponseBody, UpdateSourceTrigger=PropertyChanged}"
+                                                 AcceptsReturn="True" TextWrapping="Wrap"
+                                                 MinHeight="50" MaxHeight="100"
+                                                 FontFamily="Cascadia Code,Consolas,Courier New" FontSize="11"
+                                                 Margin="0,2,0,6"/>
+
+                                        <DockPanel Margin="0,0,0,6">
+                                            <TextBlock Text="File:" VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                       FontSize="11" Margin="0,0,4,0"/>
+                                            <ui:Button Content="Clear" HorizontalAlignment="Right"
+                                                       Command="{Binding AutoResponderVm.ClearFileCommand}"
+                                                       Padding="6,2" FontSize="10"/>
+                                            <ui:Button Content="Browse..." HorizontalAlignment="Right"
+                                                       Command="{Binding AutoResponderVm.BrowseFileCommand}"
+                                                       Padding="6,2" FontSize="10" Margin="0,0,4,0"/>
+                                            <TextBlock Text="{Binding AutoResponderVm.NewResponseFilePath, TargetNullValue='(none)'}"
+                                                       VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                                       FontSize="10" TextTrimming="CharacterEllipsis"/>
+                                        </DockPanel>
+
+                                        <WrapPanel Margin="0,4,0,0">
+                                            <ui:Button Content="Add Rule" Appearance="Primary"
+                                                       Command="{Binding AutoResponderVm.AddRuleCommand}"
+                                                       Margin="0,0,6,0"/>
+                                            <ui:Button Content="Update" Appearance="Secondary"
+                                                       Command="{Binding AutoResponderVm.UpdateRuleCommand}"
+                                                       Margin="0,0,6,0"/>
+                                            <ui:Button Content="Remove" Appearance="Danger"
+                                                       Command="{Binding AutoResponderVm.RemoveRuleCommand}"/>
+                                        </WrapPanel>
+                                    </StackPanel>
+                                </Border>
+                            </ScrollViewer>
+                        </Grid>
+                    </TabItem>
+                </TabControl>
+            </Border>
+        </Grid>
+
+        <!-- ================================================================ -->
+        <!-- Row 4: Status Bar                                                -->
+        <!-- ================================================================ -->
+        <Border Grid.Row="4"
+                Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                BorderThickness="0,1,0,0"
+                Padding="10,5">
+            <DockPanel>
+                <!-- Left side -->
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
+                    <!-- Monitoring indicator -->
+                    <Ellipse Width="10" Height="10" Margin="0,0,8,0">
+                        <Ellipse.Style>
+                            <Style TargetType="Ellipse">
+                                <Setter Property="Fill" Value="#FF888888"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsMonitoring}" Value="True">
+                                        <Setter Property="Fill" Value="#FF16A34A"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsPaused}" Value="True">
+                                        <Setter Property="Fill" Value="#FFEAB308"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Ellipse.Style>
+                    </Ellipse>
+
+                    <TextBlock Text="{Binding StatusMessage}"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               FontSize="11" VerticalAlignment="Center" Margin="0,0,16,0"/>
+
+                    <TextBlock VerticalAlignment="Center" FontSize="11"
+                               Foreground="{DynamicResource TextFillColorTertiaryBrush}">
+                        <Run Text="Total: "/><Run Text="{Binding TotalRequests, Mode=OneWay}" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                    </TextBlock>
+                </StackPanel>
+
+                <!-- Right side -->
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" HorizontalAlignment="Right"
+                            VerticalAlignment="Center">
+                    <!-- Method badges -->
+                    <Border CornerRadius="4" Padding="6,2" Margin="3,0"
+                            Background="#190078D4">
+                        <TextBlock FontSize="10" Foreground="#FF0078D4">
+                            <Run Text="GET " FontWeight="SemiBold"/><Run Text="{Binding GetCount, Mode=OneWay}"/>
+                        </TextBlock>
+                    </Border>
+                    <Border CornerRadius="4" Padding="6,2" Margin="3,0"
+                            Background="#19107C10">
+                        <TextBlock FontSize="10" Foreground="#FF107C10">
+                            <Run Text="POST " FontWeight="SemiBold"/><Run Text="{Binding PostCount, Mode=OneWay}"/>
+                        </TextBlock>
+                    </Border>
+                    <Border CornerRadius="4" Padding="6,2" Margin="3,0"
+                            Background="#199D5D00">
+                        <TextBlock FontSize="10" Foreground="#FF9D5D00">
+                            <Run Text="PUT " FontWeight="SemiBold"/><Run Text="{Binding PutCount, Mode=OneWay}"/>
+                        </TextBlock>
+                    </Border>
+                    <Border CornerRadius="4" Padding="6,2" Margin="3,0"
+                            Background="#19C42B1C">
+                        <TextBlock FontSize="10" Foreground="#FFC42B1C">
+                            <Run Text="DEL " FontWeight="SemiBold"/><Run Text="{Binding DeleteCount, Mode=OneWay}"/>
+                        </TextBlock>
+                    </Border>
+
+                    <!-- Separator -->
+                    <Rectangle Width="1" Height="16" Margin="8,0"
+                               Fill="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+
+                    <!-- Errors -->
+                    <TextBlock FontSize="11" VerticalAlignment="Center" Margin="0,0,12,0">
+                        <Run Text="Errors: " Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                        <Run Text="{Binding ErrorCount, Mode=OneWay}" FontWeight="SemiBold" Foreground="#FFC42B1C"/>
+                    </TextBlock>
+
+                    <!-- Data transferred -->
+                    <TextBlock FontSize="11" VerticalAlignment="Center">
+                        <Run Text="Data: " Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
+                        <Run Text="{Binding TotalDataFormatted, Mode=OneWay}" FontWeight="SemiBold"
+                             Foreground="{DynamicResource TextFillColorPrimaryBrush}"/>
+                    </TextBlock>
+                </StackPanel>
+            </DockPanel>
+        </Border>
+    </Grid>
+</ui:FluentWindow>

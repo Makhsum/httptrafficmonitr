@@ -1,0 +1,130 @@
+<ui:FluentWindow x:Class="HttpTrafficMonitor.Views.ReplayRequestWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:vm="clr-namespace:HttpTrafficMonitor.ViewModels"
+        Title="Replay / Compose Request"
+        Width="1100" Height="750"
+        WindowStartupLocation="CenterOwner"
+        WindowBackdropType="Mica"
+        ExtendsContentIntoTitleBar="True"
+        WindowCornerPreference="Round"
+        Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+
+    <Window.DataContext>
+        <vm:ReplayRequestViewModel/>
+    </Window.DataContext>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Title Bar -->
+        <ui:TitleBar Grid.Row="0" Title="Replay / Compose Request"
+                     MouseLeftButtonDown="TitleBar_MouseLeftButtonDown"/>
+
+        <!-- Top: Method + URL + Send -->
+        <Grid Grid.Row="1" Margin="12,8,12,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="100"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <ComboBox Grid.Column="0" ItemsSource="{x:Static vm:ReplayRequestViewModel.Methods}"
+                      SelectedItem="{Binding Method}" FontSize="13" Margin="0,0,6,0"/>
+            <TextBox Grid.Column="1" Text="{Binding Url, UpdateSourceTrigger=PropertyChanged}"
+                     FontFamily="Cascadia Code,Consolas" FontSize="13"
+                     Padding="6,4"/>
+            <ui:Button Grid.Column="2" Content="Send" Command="{Binding SendCommand}"
+                       Appearance="Primary" Icon="{ui:SymbolIcon Send24}"
+                       Margin="6,0,0,0" FontSize="13"/>
+        </Grid>
+
+        <!-- Main area: Request editor left, Response right -->
+        <Grid Grid.Row="2" Margin="12,0,12,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="5"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left: Request editor -->
+            <TabControl Grid.Column="0">
+                <TabItem Header="Headers">
+                    <TextBox Text="{Binding RequestHeaders, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource MonoTextBox}" IsReadOnly="False"
+                             AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
+                </TabItem>
+                <TabItem Header="Body">
+                    <TextBox Text="{Binding RequestBody, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource MonoTextBox}" IsReadOnly="False"
+                             AcceptsReturn="True" VerticalScrollBarVisibility="Auto"/>
+                </TabItem>
+            </TabControl>
+
+            <GridSplitter Grid.Column="1" Width="5" HorizontalAlignment="Stretch"
+                          Background="{DynamicResource ControlStrokeColorDefaultBrush}"/>
+
+            <!-- Right: Responses -->
+            <TabControl Grid.Column="2">
+                <TabItem Header="Response">
+                    <Grid>
+                        <TextBlock Text="Send a request to see the response"
+                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Visibility="{Binding HasResponse, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}"/>
+                        <ScrollViewer Visibility="{Binding HasResponse, Converter={StaticResource BoolToVisibility}}"
+                                      VerticalScrollBarVisibility="Auto">
+                            <StackPanel Margin="6">
+                                <TextBlock Style="{StaticResource SectionHeader}" Text="RESPONSE HEADERS"/>
+                                <TextBox Text="{Binding ResponseHeaders, Mode=OneWay}"
+                                         Style="{StaticResource MonoTextBox}" MaxHeight="200"/>
+                                <TextBlock Style="{StaticResource SectionHeader}" Text="RESPONSE BODY"/>
+                                <TextBox Text="{Binding ResponseBody, Mode=OneWay}"
+                                         Style="{StaticResource MonoTextBox}" MaxHeight="400"
+                                         AcceptsReturn="True"/>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </TabItem>
+                <TabItem Header="Original" Visibility="{Binding HasOriginal, Converter={StaticResource BoolToVisibility}}">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel Margin="6">
+                            <Border Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                                    CornerRadius="4" Padding="8,4" Margin="0,0,0,8">
+                                <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="11">
+                                    <Run Text="Original: "/>
+                                    <Run Text="{Binding OriginalStatusCode, Mode=OneWay}" FontWeight="Bold"/>
+                                    <Run Text=" | "/>
+                                    <Run Text="{Binding OriginalDuration, Mode=OneWay}"/>
+                                </TextBlock>
+                            </Border>
+                            <TextBlock Style="{StaticResource SectionHeader}" Text="ORIGINAL RESPONSE HEADERS"/>
+                            <TextBox Text="{Binding OriginalResponseHeaders, Mode=OneWay}"
+                                     Style="{StaticResource MonoTextBox}" MaxHeight="200"/>
+                            <TextBlock Style="{StaticResource SectionHeader}" Text="ORIGINAL RESPONSE BODY"/>
+                            <TextBox Text="{Binding OriginalResponseBody, Mode=OneWay}"
+                                     Style="{StaticResource MonoTextBox}" MaxHeight="400"
+                                     AcceptsReturn="True"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+            </TabControl>
+        </Grid>
+
+        <!-- Bottom: Status bar -->
+        <Border Grid.Row="3" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                CornerRadius="4" Padding="10,6" Margin="12,8,12,12">
+            <DockPanel>
+                <ui:ProgressRing DockPanel.Dock="Left" IsIndeterminate="True" Width="16" Height="16" Margin="0,0,10,0"
+                                 Visibility="{Binding IsSending, Converter={StaticResource BoolToVisibility}}"/>
+                <TextBlock Text="{Binding StatusMessage}"
+                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontSize="12"/>
+            </DockPanel>
+        </Border>
+    </Grid>
+</ui:FluentWindow>

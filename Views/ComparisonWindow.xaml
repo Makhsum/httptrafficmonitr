@@ -1,0 +1,110 @@
+<ui:FluentWindow x:Class="HttpTrafficMonitor.Views.ComparisonWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:vm="clr-namespace:HttpTrafficMonitor.ViewModels"
+        Title="Compare Requests"
+        Width="1000" Height="700"
+        WindowStartupLocation="CenterOwner"
+        WindowBackdropType="Mica"
+        ExtendsContentIntoTitleBar="True"
+        WindowCornerPreference="Round"
+        Foreground="{DynamicResource TextFillColorPrimaryBrush}">
+
+    <Window.DataContext>
+        <vm:ComparisonViewModel/>
+    </Window.DataContext>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Title Bar -->
+        <ui:TitleBar Grid.Row="0" Title="Compare Requests"
+                     MouseLeftButtonDown="TitleBar_MouseLeftButtonDown"/>
+
+        <!-- Summary headers -->
+        <Grid Grid.Row="1" Margin="12,8,12,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="4" Padding="10,6" Margin="0,0,4,0">
+                <StackPanel>
+                    <TextBlock Text="{Binding LeftLabel}"
+                               Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"
+                               FontWeight="Bold" FontSize="13"/>
+                    <TextBlock Text="{Binding LeftSummary}"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="11"/>
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="1" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                    CornerRadius="4" Padding="10,6" Margin="4,0,0,0">
+                <StackPanel>
+                    <TextBlock Text="{Binding RightLabel}"
+                               Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"
+                               FontWeight="Bold" FontSize="13"/>
+                    <TextBlock Text="{Binding RightSummary}"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="11"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Timing comparison + Tab selector -->
+        <DockPanel Grid.Row="2" Margin="12,0,12,6">
+            <TextBlock DockPanel.Dock="Left" Text="{Binding TimingComparison}"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                       VerticalAlignment="Center" FontSize="11" Margin="0,0,12,0"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <RadioButton Content="Req Headers" Tag="RequestHeaders" GroupName="DiffTab"
+                             Margin="0,0,8,0" IsChecked="True" Checked="DiffTab_Checked"/>
+                <RadioButton Content="Req Body" Tag="RequestBody" GroupName="DiffTab"
+                             Margin="0,0,8,0" Checked="DiffTab_Checked"/>
+                <RadioButton Content="Resp Headers" Tag="ResponseHeaders" GroupName="DiffTab"
+                             Margin="0,0,8,0" Checked="DiffTab_Checked"/>
+                <RadioButton Content="Resp Body" Tag="ResponseBody" GroupName="DiffTab"
+                             Checked="DiffTab_Checked"/>
+            </StackPanel>
+        </DockPanel>
+
+        <!-- Diff view -->
+        <Border Grid.Row="3" Margin="12,0,12,12"
+                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                BorderThickness="1" CornerRadius="4">
+            <ListView ItemsSource="{Binding DiffLines}"
+                      BorderThickness="0" FontFamily="Cascadia Code,Consolas" FontSize="12"
+                      VirtualizingPanel.IsVirtualizing="True"
+                      VirtualizingPanel.VirtualizationMode="Recycling"
+                      ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="{Binding Background}" Padding="4,1" Margin="-6,-2">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{Binding Position}" Width="40"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                           TextAlignment="Right" Margin="0,0,8,0"/>
+                                <TextBlock Text="{Binding Prefix}" Width="14" FontWeight="Bold"
+                                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                                <TextBlock Text="{Binding Text}"
+                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}"
+                                           TextWrapping="NoWrap"/>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="Margin" Value="0"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                    </Style>
+                </ListView.ItemContainerStyle>
+            </ListView>
+        </Border>
+    </Grid>
+</ui:FluentWindow>

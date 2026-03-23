@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__filesystem__list_directory",
+      "mcp__filesystem__directory_tree",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__query-docs",
+      "Bash(dotnet build:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Bash(dir:*)",
+      "Bash(dir /s /b \"%USERPROFILE%\\\\.nuget\\\\packages\\\\wpf-ui\\\\3.0.5\\\\lib\\\\*.dll\")",
+      "Bash(dotnet tool list:*)",
+      "Bash(findstr:*)",
+      "Bash(where:*)",
+      "Bash(powershell -Command:*)"
+    ]
+  }
+}

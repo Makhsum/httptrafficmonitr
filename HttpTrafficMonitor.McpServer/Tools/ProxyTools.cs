@@ -1,0 +1,114 @@
+using ModelContextProtocol.Server;
+using System.ComponentModel;
+using System.Text;
+using System.Text.Json;
+
+namespace HttpTrafficMonitor.McpServer.Tools;
+
+[McpServerToolType]
+public static class ProxyTools
+{
+    [McpServerTool, Description("Get the current status of the HTTP proxy including whether it's running, paused, the listening port, and request count.")]
+    public static async Task<string> get_proxy_status(IpcClient client)
+    {
+        try
+        {
+            var result = await client.GetAsync("/proxy/status");
+            var sb = new StringBuilder();
+            sb.AppendLine("=== Proxy Status ===");
+
+            var isRunning = result.TryGetProperty("isRunning", out var runningEl) && runningEl.GetBoolean();
+            sb.AppendLine($"State:          {(isRunning ? "Running" : "Stopped")}");
+
+            if (result.TryGetProperty("isPaused", out var pausedEl))
+                sb.AppendLine($"Capture:        {(pausedEl.GetBoolean() ? "Paused" : "Active")}");
+
+            if (result.TryGetProperty("port", out var portEl))
+                sb.AppendLine($"Port:           {portEl}");
+
+            if (result.TryGetProperty("requestCount", out var countEl))
+                sb.AppendLine($"Request Count:  {countEl}");
+
+            if (result.TryGetProperty("uptime", out var uptimeEl))
+                sb.AppendLine($"Uptime:         {uptimeEl.GetString()}");
+
+            return sb.ToString().TrimEnd();
+        }
+        catch (HttpRequestException ex)
+        {
+            return $"Error: {ex.Message}. Make sure HttpTrafficMonitor is running.";
+        }
+    }
+
+    [McpServerTool, Description("Start the HTTP proxy server to begin capturing traffic.")]
+    public static async Task<string> start_proxy(IpcClient client)
+    {
+        try
+        {
+            var result = await client.PostAsync("/proxy/start");
+
+            if (result.TryGetProperty("message", out var msgEl))
+                return msgEl.GetString() ?? "Proxy started successfully.";
+
+            return "Proxy started successfully.";
+        }
+        catch (HttpRequestException ex)
+        {
+            return $"Error: {ex.Message}. Make sure HttpTrafficMonitor is running.";
+        }
+    }
+
+    [McpServerTool, Description("Stop the HTTP proxy server. This will stop capturing all traffic.")]
+    public static async Task<string> stop_proxy(IpcClient client)
+    {
+        try
+        {
+            var result = await client.PostAsync("/proxy/stop");
+
+            if (result.TryGetProperty("message", out var msgEl))
+                return msgEl.GetString() ?? "Proxy stopped successfully.";
+
+            return "Proxy stopped successfully.";
+        }
+        catch (HttpRequestException ex)
+        {
+            return $"Error: {ex.Message}. Make sure HttpTrafficMonitor is running.";
+        }
+    }
+
+    [McpServerTool, Description("Pause traffic capture. The proxy stays running but new requests are not recorded.")]
+    public static async Task<string> pause_capture(IpcClient client)
+    {
+        try
+        {
+            var result = await client.PostAsync("/proxy/pause");
+
+            if (result.TryGetProperty("message", out var msgEl))
+                return msgEl.GetString() ?? "Capture paused successfully.";
+
+            return "Capture paused successfully.";
+        }
+        catch (HttpRequestException ex)
+        {
+            return $"Error: {ex.Message}. Make sure HttpTrafficMonitor is running.";
+        }
+    }
+
+    [McpServerTool, Description("Resume traffic capture after it was paused.")]
+    public static async Task<string> resume_capture(IpcClient client)
+    {
+        try
+        {
+            var result = await client.PostAsync("/proxy/resume");
+
+            if (result.TryGetProperty("message", out var msgEl))
+                return msgEl.GetString() ?? "Capture resumed successfully.";
+
+            return "Capture resumed successfully.";
+        }
+        catch (HttpRequestException ex)
+        {
+            return $"Error: {ex.Message}. Make sure HttpTrafficMonitor is running.";
+        }
+    }
+}
