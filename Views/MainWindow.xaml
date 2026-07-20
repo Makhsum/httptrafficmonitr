@@ -53,11 +53,13 @@
                            Content="Start"
                            Appearance="Primary"
                            Command="{Binding StartCommand}"
+                           AutomationProperties.AutomationId="Toolbar.StartButton"
                            Margin="0,0,4,0"/>
                 <ui:Button Icon="{ui:SymbolIcon Stop24}"
                            Content="Stop"
                            Appearance="Danger"
                            Command="{Binding StopCommand}"
+                           AutomationProperties.AutomationId="Toolbar.StopButton"
                            Margin="0,0,4,0"/>
 
                 <!-- Separator -->
@@ -67,10 +69,12 @@
                 <ui:Button Icon="{ui:SymbolIcon Delete24}"
                            Content="Clear"
                            Command="{Binding ClearCommand}"
+                           AutomationProperties.AutomationId="Toolbar.ClearButton"
                            Margin="0,0,4,0"/>
                 <ui:Button Icon="{ui:SymbolIcon ArrowDownload24}"
                            Content="Export"
                            Command="{Binding ExportCommand}"
+                           AutomationProperties.AutomationId="Toolbar.ExportButton"
                            Margin="0,0,4,0"/>
 
                 <!-- Separator -->
@@ -80,14 +84,17 @@
                 <ui:Button Icon="{ui:SymbolIcon ArrowRepeatAll24}"
                            Content="Replay"
                            Command="{Binding ReplayRequestCommand}"
+                           AutomationProperties.AutomationId="Toolbar.ReplayButton"
                            Margin="0,0,4,0"/>
                 <ui:Button Icon="{ui:SymbolIcon Compose24}"
                            Content="Compose"
                            Command="{Binding ComposeRequestCommand}"
+                           AutomationProperties.AutomationId="Toolbar.ComposeButton"
                            Margin="0,0,4,0"/>
                 <ui:Button Icon="{ui:SymbolIcon ArrowsBidirectional24}"
                            Content="Compare"
                            Command="{Binding CompareSelectedCommand}"
+                           AutomationProperties.AutomationId="Toolbar.CompareButton"
                            Margin="0,0,4,0"/>
 
                 <!-- Separator -->
@@ -97,10 +104,12 @@
                 <ui:Button Icon="{ui:SymbolIcon Save24}"
                            Content="Save Session"
                            Command="{Binding SaveSessionCommand}"
+                           AutomationProperties.AutomationId="Toolbar.SaveSessionButton"
                            Margin="0,0,4,0"/>
                 <ui:Button Icon="{ui:SymbolIcon FolderOpen24}"
                            Content="Load Session"
                            Command="{Binding LoadSessionCommand}"
+                           AutomationProperties.AutomationId="Toolbar.LoadSessionButton"
                            Margin="0,0,4,0"/>
 
                 <!-- Separator -->
@@ -108,7 +117,9 @@
                            Fill="{DynamicResource ControlStrokeColorDefaultBrush}"/>
 
                 <!-- Advanced Filter with active indicator -->
-                <ui:Button Command="{Binding AdvancedFilterCommand}" Margin="0,0,4,0">
+                <ui:Button Command="{Binding AdvancedFilterCommand}"
+                           AutomationProperties.AutomationId="Toolbar.AdvancedFilterButton"
+                           Margin="0,0,4,0">
                     <StackPanel Orientation="Horizontal">
                         <ui:SymbolIcon Symbol="Filter24" Margin="0,0,4,0"/>
                         <TextBlock Text="Filter" VerticalAlignment="Center"/>
@@ -124,14 +135,17 @@
                 <!-- Toggle switches -->
                 <ui:ToggleSwitch IsChecked="{Binding AutoScroll}"
                                  OnContent="Auto-scroll" OffContent="Auto-scroll"
+                                 AutomationProperties.AutomationId="Toolbar.AutoScrollToggle"
                                  Margin="4,0"/>
                 <ui:ToggleSwitch IsChecked="{Binding IsPaused}"
                                  OnContent="Paused" OffContent="Capture"
                                  IsEnabled="{Binding IsMonitoring}"
+                                 AutomationProperties.AutomationId="Toolbar.PauseToggle"
                                  Margin="4,0"/>
                 <CheckBox Content="Bookmarks Only"
                           IsChecked="{Binding ShowBookmarksOnly}"
                           VerticalAlignment="Center"
+                          AutomationProperties.AutomationId="Toolbar.BookmarksOnlyCheckBox"
                           Margin="4,0"/>
 
                 <!-- Separator -->
@@ -140,10 +154,12 @@
 
                 <ui:ToggleSwitch IsChecked="{Binding IsDarkTheme}"
                                  OnContent="Dark" OffContent="Light"
+                                 AutomationProperties.AutomationId="Toolbar.ThemeToggle"
                                  Margin="4,0"/>
                 <ui:Button Icon="{ui:SymbolIcon Accessibility24}"
                            Command="{Binding ToggleBottomPanelCommand}"
                            ToolTip="Toggle Bottom Panel"
+                           AutomationProperties.AutomationId="Toolbar.ToggleBottomPanelButton"
                            Margin="0,0,4,0"/>
 
                 <!-- Separator -->
@@ -173,6 +189,7 @@
                 <ui:TextBox Width="220"
                             PlaceholderText="Filter by URL, host, process..."
                             Text="{Binding FilterText, UpdateSourceTrigger=PropertyChanged, Delay=200}"
+                            AutomationProperties.AutomationId="FilterBar.SearchTextBox"
                             Margin="0,0,12,0"/>
 
                 <TextBlock Text="Process:" VerticalAlignment="Center" Margin="0,0,4,0"
@@ -181,6 +198,7 @@
                           ItemsSource="{Binding ProcessFilterOptions}"
                           SelectedItem="{Binding SelectedProcessFilter}"
                           IsEditable="True" IsTextSearchEnabled="True"
+                          AutomationProperties.AutomationId="FilterBar.ProcessComboBox"
                           Margin="0,0,12,0"/>
 
                 <TextBlock Text="Domain:" VerticalAlignment="Center" Margin="0,0,4,0"
@@ -189,6 +207,7 @@
                           ItemsSource="{Binding DomainFilterOptions}"
                           SelectedItem="{Binding SelectedDomainFilter}"
                           IsEditable="True" IsTextSearchEnabled="True"
+                          AutomationProperties.AutomationId="FilterBar.DomainComboBox"
                           Margin="0,0,12,0"/>
 
                 <TextBlock Text="Method:" VerticalAlignment="Center" Margin="0,0,4,0"
@@ -196,6 +215,7 @@
                 <ComboBox Width="120"
                           ItemsSource="{Binding MethodFilterOptions}"
                           SelectedItem="{Binding SelectedMethodFilter}"
+                          AutomationProperties.AutomationId="FilterBar.MethodComboBox"
                           Margin="0,0,12,0"/>
 
                 <TextBlock Text="Status:" VerticalAlignment="Center" Margin="0,0,4,0"
@@ -203,6 +223,7 @@
                 <ComboBox Width="150"
                           ItemsSource="{Binding StatusFilterOptions}"
                           SelectedItem="{Binding SelectedStatusFilter}"
+                          AutomationProperties.AutomationId="FilterBar.StatusComboBox"
                           Margin="0,0,4,0"/>
             </WrapPanel>
         </Border>
@@ -234,6 +255,7 @@
                           IsReadOnly="True"
                           SelectionMode="Extended"
                           SelectionChanged="RequestsGrid_SelectionChanged"
+                          AutomationProperties.AutomationId="MainWindow.RequestsGrid"
                           VirtualizingPanel.IsVirtualizing="True"
                           VirtualizingPanel.VirtualizationMode="Recycling"
                           VirtualizingPanel.IsContainerVirtualizable="True"
@@ -439,7 +461,8 @@
 
                         <!-- Detail TabControl -->
                         <TabControl Visibility="{Binding SelectedRequest, Converter={StaticResource NullToVisibility}}"
-                                    Background="Transparent" BorderThickness="0" Padding="0">
+                                    Background="Transparent" BorderThickness="0" Padding="0"
+                                    AutomationProperties.AutomationId="MainWindow.DetailTabControl">
 
                             <!-- Tab 1: Request -->
                             <TabItem Header="Request">
@@ -889,7 +912,8 @@
                     BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
                     BorderThickness="0,1,0,0"
                     Visibility="{Binding ShowBottomPanel, Converter={StaticResource BoolToVisibility}}">
-                <TabControl Background="Transparent" BorderThickness="0" Padding="0">
+                <TabControl Background="Transparent" BorderThickness="0" Padding="0"
+                            AutomationProperties.AutomationId="MainWindow.BottomTabControl">
 
                     <!-- Graphs Tab -->
                     <TabItem Header="Graphs">
@@ -972,6 +996,7 @@
                                 <DataGrid ItemsSource="{Binding AlertsVm.Rules}"
                                           SelectedItem="{Binding AlertsVm.SelectedRule}"
                                           AutoGenerateColumns="False" IsReadOnly="True"
+                                          AutomationProperties.AutomationId="Alerts.RulesGrid"
                                           Height="100" Margin="0,4,0,8"
                                           Background="Transparent"
                                           BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
@@ -995,7 +1020,8 @@
                                                 <TextBlock Text="Name" FontSize="10"
                                                            Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                                 <ui:TextBox Text="{Binding AlertsVm.NewRuleName, UpdateSourceTrigger=PropertyChanged}"
-                                                           Width="140" PlaceholderText="Rule name"/>
+                                                           Width="140" PlaceholderText="Rule name"
+                                                           AutomationProperties.AutomationId="Alerts.NewRuleNameTextBox"/>
                                             </StackPanel>
                                             <StackPanel Margin="0,0,8,4">
                                                 <TextBlock Text="Type" FontSize="10"
@@ -1008,13 +1034,16 @@
                                                 <TextBlock Text="Pattern" FontSize="10"
                                                            Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                                 <ui:TextBox Text="{Binding AlertsVm.NewRulePattern, UpdateSourceTrigger=PropertyChanged}"
-                                                           Width="140" PlaceholderText="Pattern"/>
+                                                           Width="140" PlaceholderText="Pattern"
+                                                           AutomationProperties.AutomationId="Alerts.NewRulePatternTextBox"/>
                                             </StackPanel>
                                             <ui:Button Content="Add" Appearance="Primary"
                                                        Command="{Binding AlertsVm.AddRuleCommand}"
+                                                       AutomationProperties.AutomationId="Alerts.AddRuleButton"
                                                        VerticalAlignment="Bottom" Margin="0,0,4,4"/>
                                             <ui:Button Content="Remove" Appearance="Danger"
                                                        Command="{Binding AlertsVm.RemoveRuleCommand}"
+                                                       AutomationProperties.AutomationId="Alerts.RemoveRuleButton"
                                                        VerticalAlignment="Bottom" Margin="0,0,0,4"/>
                                         </WrapPanel>
                                     </StackPanel>
@@ -1030,11 +1059,13 @@
                                     <TextBlock Text="Alert Events" Style="{StaticResource SectionHeader}"/>
                                     <ui:Button Content="Clear" Appearance="Secondary"
                                                Command="{Binding AlertsVm.ClearAlertsCommand}"
+                                               AutomationProperties.AutomationId="Alerts.ClearAlertsButton"
                                                HorizontalAlignment="Right" Padding="8,2"
                                                FontSize="11"/>
                                 </DockPanel>
                                 <ListBox ItemsSource="{Binding AlertsVm.AlertEvents}"
                                          SelectedItem="{Binding AlertsVm.SelectedAlert}"
+                                         AutomationProperties.AutomationId="Alerts.EventsListBox"
                                          Height="180" Margin="0,4"
                                          Background="Transparent"
                                          BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
@@ -1078,11 +1109,13 @@
                                 <DockPanel Margin="0,0,0,6">
                                     <TextBlock Text="Auto-Responder" Style="{StaticResource SectionHeader}"/>
                                     <CheckBox Content="Enable" IsChecked="{Binding AutoResponderVm.IsEnabled}"
+                                              AutomationProperties.AutomationId="AutoResponder.EnableCheckBox"
                                               HorizontalAlignment="Right" VerticalAlignment="Center"/>
                                 </DockPanel>
                                 <DataGrid ItemsSource="{Binding AutoResponderVm.Rules}"
                                           SelectedItem="{Binding AutoResponderVm.SelectedRule}"
                                           AutoGenerateColumns="False" IsReadOnly="True"
+                                          AutomationProperties.AutomationId="AutoResponder.RulesGrid"
                                           Height="180" Margin="0,4"
                                           Background="Transparent"
                                           BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
@@ -1113,6 +1146,7 @@
                                                    Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                         <ui:TextBox Text="{Binding AutoResponderVm.NewUrlPattern, UpdateSourceTrigger=PropertyChanged}"
                                                     PlaceholderText="e.g. /api/users or regex pattern"
+                                                    AutomationProperties.AutomationId="AutoResponder.UrlPatternTextBox"
                                                     Margin="0,2,0,6"/>
 
                                         <WrapPanel Margin="0,0,0,6">
@@ -1163,9 +1197,11 @@
                                                        FontSize="11" Margin="0,0,4,0"/>
                                             <ui:Button Content="Clear" HorizontalAlignment="Right"
                                                        Command="{Binding AutoResponderVm.ClearFileCommand}"
+                                                       AutomationProperties.AutomationId="AutoResponder.ClearFileButton"
                                                        Padding="6,2" FontSize="10"/>
                                             <ui:Button Content="Browse..." HorizontalAlignment="Right"
                                                        Command="{Binding AutoResponderVm.BrowseFileCommand}"
+                                                       AutomationProperties.AutomationId="AutoResponder.BrowseFileButton"
                                                        Padding="6,2" FontSize="10" Margin="0,0,4,0"/>
                                             <TextBlock Text="{Binding AutoResponderVm.NewResponseFilePath, TargetNullValue='(none)'}"
                                                        VerticalAlignment="Center"
@@ -1176,12 +1212,15 @@
                                         <WrapPanel Margin="0,4,0,0">
                                             <ui:Button Content="Add Rule" Appearance="Primary"
                                                        Command="{Binding AutoResponderVm.AddRuleCommand}"
+                                                       AutomationProperties.AutomationId="AutoResponder.AddRuleButton"
                                                        Margin="0,0,6,0"/>
                                             <ui:Button Content="Update" Appearance="Secondary"
                                                        Command="{Binding AutoResponderVm.UpdateRuleCommand}"
+                                                       AutomationProperties.AutomationId="AutoResponder.UpdateRuleButton"
                                                        Margin="0,0,6,0"/>
                                             <ui:Button Content="Remove" Appearance="Danger"
-                                                       Command="{Binding AutoResponderVm.RemoveRuleCommand}"/>
+                                                       Command="{Binding AutoResponderVm.RemoveRuleCommand}"
+                                                       AutomationProperties.AutomationId="AutoResponder.RemoveRuleButton"/>
                                         </WrapPanel>
                                     </StackPanel>
                                 </Border>

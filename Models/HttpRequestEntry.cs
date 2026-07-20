@@ -142,6 +142,9 @@ namespace HttpTrafficMonitor.Models
         public double? TimeToFirstByteMs { get; set; }
         public double? ContentDownloadMs { get; set; }
 
+        // SSL Passthrough indicator (CONNECT logged without MITM)
+        public bool IsSslPassthrough { get; set; }
+
         // Slow request indicator
         public bool IsSlow
         {

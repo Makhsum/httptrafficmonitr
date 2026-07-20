@@ -42,6 +42,7 @@ namespace HttpTrafficMonitor.ViewModels
         private string _statusMessage = "Ready. Click Start to begin monitoring.";
         private string _excludedDomainsText = string.Empty;
         private string _excludedProcessesText = string.Empty;
+        private string _sslPassthroughDomainsText = string.Empty;
         private string _formattedRequestBody = string.Empty;
         private string _formattedResponseBody = string.Empty;
         private bool _showBottomPanel = true;
@@ -149,6 +150,7 @@ namespace HttpTrafficMonitor.ViewModels
         public string TotalDataFormatted => FormatHelper.FormatSize(_totalDataTransferred);
         public string ExcludedDomainsText { get => _excludedDomainsText; set { if (SetProperty(ref _excludedDomainsText, value)) UpdateExcludedDomains(); } }
         public string ExcludedProcessesText { get => _excludedProcessesText; set { if (SetProperty(ref _excludedProcessesText, value)) UpdateExcludedProcesses(); } }
+        public string SslPassthroughDomainsText { get => _sslPassthroughDomainsText; set { if (SetProperty(ref _sslPassthroughDomainsText, value)) UpdateSslPassthroughDomains(); } }
         public string FormattedRequestBody { get => _formattedRequestBody; set => SetProperty(ref _formattedRequestBody, value); }
         public string FormattedResponseBody { get => _formattedResponseBody; set => SetProperty(ref _formattedResponseBody, value); }
         public bool ShowBottomPanel { get => _showBottomPanel; set => SetProperty(ref _showBottomPanel, value); }
@@ -372,7 +374,8 @@ namespace HttpTrafficMonitor.ViewModels
                 List<HttpRequestEntry> snapshot;
                 lock (_collectionLock) { snapshot = AllRequests.ToList(); }
                 var session = SessionService.BuildSessionData(snapshot, ExcludedDomainsText, ExcludedProcessesText,
-                    AlertsVm.Rules.ToList(), AutoResponderVm.Rules.ToList());
+                    AlertsVm.Rules.ToList(), AutoResponderVm.Rules.ToList(),
+                    sslPassthroughDomains: SslPassthroughDomainsText);
                 SessionService.SaveSession(dialog.FileName, session);
                 RefreshRecentSessions();
                 StatusMessage = $"Session saved ({snapshot.Count} requests)";
@@ -411,6 +414,7 @@ namespace HttpTrafficMonitor.ViewModels
 
                 ExcludedDomainsText = session.Settings.ExcludedDomains;
                 ExcludedProcessesText = session.Settings.ExcludedProcesses;
+                SslPassthroughDomainsText = session.Settings.SslPassthroughDomains ?? string.Empty;
                 RefreshRecentSessions();
                 StatusMessage = $"Loaded session: {entries.Count} requests from {session.SavedAt:g}";
             }
@@ -597,6 +601,14 @@ namespace HttpTrafficMonitor.ViewModels
             if (string.IsNullOrWhiteSpace(_excludedProcessesText)) return;
             foreach (string p in _excludedProcessesText.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
                 _proxyService.ExcludedProcesses.Add(p);
+        }
+
+        private void UpdateSslPassthroughDomains()
+        {
+            _proxyService.SslPassthroughDomains.Clear();
+            if (string.IsNullOrWhiteSpace(_sslPassthroughDomainsText)) return;
+            foreach (string d in _sslPassthroughDomainsText.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                _proxyService.SslPassthroughDomains.Add(d);
         }
 
         private void AddExcludedDomain()

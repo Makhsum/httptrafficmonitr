@@ -35,12 +35,16 @@
                 <TextBlock Style="{StaticResource SectionHeader}" Text="ADD CONDITION" Margin="0,0,0,6"/>
                 <WrapPanel>
                     <ComboBox ItemsSource="{Binding AvailableFields}" SelectedItem="{Binding NewField}"
+                              AutomationProperties.AutomationId="AdvancedFilter.FieldComboBox"
                               Width="120" Margin="0,0,6,0"/>
                     <ComboBox ItemsSource="{Binding AvailableOperators}" SelectedItem="{Binding NewOperator}"
+                              AutomationProperties.AutomationId="AdvancedFilter.OperatorComboBox"
                               Width="120" Margin="0,0,6,0"/>
                     <TextBox Text="{Binding NewValue, UpdateSourceTrigger=PropertyChanged}"
+                             AutomationProperties.AutomationId="AdvancedFilter.ValueTextBox"
                              Width="200" Padding="4,3" Margin="0,0,6,0"/>
                     <ui:Button Content="Add" Command="{Binding AddConditionCommand}"
+                               AutomationProperties.AutomationId="AdvancedFilter.AddConditionButton"
                                Icon="{ui:SymbolIcon Add24}" Appearance="Primary"/>
                 </WrapPanel>
                 <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
@@ -56,6 +60,7 @@
         <DataGrid Grid.Row="2" Margin="12,0,12,0"
                   ItemsSource="{Binding Conditions}" SelectedItem="{Binding SelectedCondition}"
                   AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Single"
+                  AutomationProperties.AutomationId="AdvancedFilter.ConditionsGrid"
                   GridLinesVisibility="Horizontal" HeadersVisibility="Column" RowHeaderWidth="0">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Field" Binding="{Binding Field}" Width="120"/>
@@ -77,12 +82,16 @@
                 <TextBlock Text="Preset:" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
                            VerticalAlignment="Center" Margin="0,0,6,0"/>
                 <TextBox Text="{Binding PresetName, UpdateSourceTrigger=PropertyChanged}"
+                         AutomationProperties.AutomationId="AdvancedFilter.PresetNameTextBox"
                          Width="150" Padding="4,3" Margin="0,0,6,0"/>
                 <ui:Button Content="Save" Command="{Binding SavePresetCommand}"
+                           AutomationProperties.AutomationId="AdvancedFilter.SavePresetButton"
                            Icon="{ui:SymbolIcon Save24}" Margin="0,0,4,0"/>
                 <ComboBox ItemsSource="{Binding Presets}" SelectedItem="{Binding SelectedPreset}"
+                          AutomationProperties.AutomationId="AdvancedFilter.PresetsComboBox"
                           DisplayMemberPath="Name" Width="150" Margin="0,0,6,0"/>
                 <ui:Button Content="Delete" Command="{Binding DeletePresetCommand}"
+                           AutomationProperties.AutomationId="AdvancedFilter.DeletePresetButton"
                            Icon="{ui:SymbolIcon Delete24}" Appearance="Danger"/>
             </WrapPanel>
         </Border>
@@ -91,8 +100,10 @@
         <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right"
                     Margin="12,10,12,12">
             <ui:Button Content="Clear All" Command="{Binding ClearCommand}"
+                       AutomationProperties.AutomationId="AdvancedFilter.ClearAllButton"
                        Icon="{ui:SymbolIcon Dismiss24}" Margin="0,0,6,0"/>
             <ui:Button Content="Apply Filter" Command="{Binding ApplyCommand}"
+                       AutomationProperties.AutomationId="AdvancedFilter.ApplyFilterButton"
                        Icon="{ui:SymbolIcon Checkmark24}" Appearance="Primary"/>
         </StackPanel>
     </Grid>

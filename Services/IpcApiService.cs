@@ -208,6 +208,10 @@ namespace HttpTrafficMonitor.Services
                     HandleGetExclusions(response);
                 else if (path == "/api/exclusions" && method == "POST")
                     HandleSetExclusions(ctx.Request, response);
+                else if (path == "/api/ssl-passthrough" && method == "GET")
+                    HandleGetSslPassthrough(response);
+                else if (path == "/api/ssl-passthrough" && method == "POST")
+                    HandleSetSslPassthrough(ctx.Request, response);
                 else if (path == "/api/alerts/rules" && method == "GET")
                     HandleGetAlertRules(response);
                 else if (path == "/api/alerts/rules" && method == "POST")
@@ -563,6 +567,34 @@ namespace HttpTrafficMonitor.Services
                     foreach (var p in body.Processes)
                         _vm.ProxyServiceInstance.ExcludedProcesses.Add(p);
                     _vm.ExcludedProcessesText = string.Join("\n", body.Processes);
+                }
+            });
+            WriteJson(response, new { success = true });
+        }
+
+        // ======================= SSL PASSTHROUGH =======================
+
+        private void HandleGetSslPassthrough(HttpListenerResponse response)
+        {
+            var data = InvokeOnUI(() => new
+            {
+                domains = _vm.ProxyServiceInstance.SslPassthroughDomains.ToArray()
+            });
+            WriteJson(response, data);
+        }
+
+        private void HandleSetSslPassthrough(HttpListenerRequest request, HttpListenerResponse response)
+        {
+            var body = ReadBody<SslPassthroughDto>(request);
+
+            InvokeOnUI(() =>
+            {
+                if (body.Domains != null)
+                {
+                    _vm.ProxyServiceInstance.SslPassthroughDomains.Clear();
+                    foreach (var d in body.Domains)
+                        _vm.ProxyServiceInstance.SslPassthroughDomains.Add(d);
+                    _vm.SslPassthroughDomainsText = string.Join("\n", body.Domains);
                 }
             });
             WriteJson(response, new { success = true });
@@ -954,7 +986,8 @@ namespace HttpTrafficMonitor.Services
                     _vm.ExcludedDomainsText,
                     _vm.ExcludedProcessesText,
                     _vm.AlertsVm.Rules.ToList(),
-                    _vm.AutoResponderVm.Rules.ToList());
+                    _vm.AutoResponderVm.Rules.ToList(),
+                    sslPassthroughDomains: _vm.SslPassthroughDomainsText);
                 session.Description = body.Description ?? string.Empty;
                 SessionService.SaveSession(body.FilePath!, session);
                 _vm.StatusMessage = $"Session saved ({snapshot.Count} requests)";
@@ -1009,6 +1042,7 @@ namespace HttpTrafficMonitor.Services
 
                 _vm.ExcludedDomainsText = session.Settings.ExcludedDomains;
                 _vm.ExcludedProcessesText = session.Settings.ExcludedProcesses;
+                _vm.SslPassthroughDomainsText = session.Settings.SslPassthroughDomains ?? string.Empty;
                 _vm.StatusMessage = $"Loaded session: {entries.Count} requests from {session.SavedAt:g}";
             });
 
@@ -1554,6 +1588,12 @@ namespace HttpTrafficMonitor.Services
 
             [JsonPropertyName("processes")]
             public List<string>? Processes { get; set; }
+        }
+
+        private class SslPassthroughDto
+        {
+            [JsonPropertyName("domains")]
+            public List<string>? Domains { get; set; }
         }
 
         private class AlertRuleDto

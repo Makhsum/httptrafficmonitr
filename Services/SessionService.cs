@@ -48,7 +48,8 @@ namespace HttpTrafficMonitor.Services
             string excludedProcesses,
             List<AlertRule>? alertRules = null,
             List<AutoResponderRule>? autoResponderRules = null,
-            List<FilterPreset>? filterPresets = null)
+            List<FilterPreset>? filterPresets = null,
+            string sslPassthroughDomains = "")
         {
             return new SessionData
             {
@@ -79,6 +80,7 @@ namespace HttpTrafficMonitor.Services
                 {
                     ExcludedDomains = excludedDomains,
                     ExcludedProcesses = excludedProcesses,
+                    SslPassthroughDomains = sslPassthroughDomains,
                     AlertRules = alertRules ?? new(),
                     AutoResponderRules = autoResponderRules ?? new(),
                     FilterPresets = filterPresets ?? new(),

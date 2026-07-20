@@ -50,6 +50,11 @@ namespace HttpTrafficMonitor.Services
         public HashSet<string> ExcludedDomains { get; } = new(StringComparer.OrdinalIgnoreCase);
         public HashSet<string> ExcludedProcesses { get; } = new(StringComparer.OrdinalIgnoreCase);
 
+        // SSL Passthrough: domains where TLS is NOT intercepted (no MITM),
+        // but CONNECT requests are still logged with metadata (host, port, process, timestamp).
+        // Use this for sites protected by Cloudflare or similar that block MITM proxies.
+        public HashSet<string> SslPassthroughDomains { get; } = new(StringComparer.OrdinalIgnoreCase);
+
         // Auto-responder rules
         public ObservableCollection<AutoResponderRule> AutoResponderRules { get; } = new();
         public bool AutoResponderEnabled { get; set; }
@@ -77,6 +82,7 @@ namespace HttpTrafficMonitor.Services
                 _proxyServer.ExceptionFunc = OnProxyException;
 
                 _explicitEndPoint = new ExplicitProxyEndPoint(IPAddress.Loopback, ProxyPort, true);
+                _explicitEndPoint.BeforeTunnelConnectRequest += OnBeforeTunnelConnectRequest;
                 _proxyServer.AddEndPoint(_explicitEndPoint);
 
                 _proxyServer.Start();
@@ -107,6 +113,8 @@ namespace HttpTrafficMonitor.Services
 
             try
             {
+                if (_explicitEndPoint != null)
+                    _explicitEndPoint.BeforeTunnelConnectRequest -= OnBeforeTunnelConnectRequest;
                 _proxyServer.BeforeRequest -= OnBeforeRequest;
                 _proxyServer.BeforeResponse -= OnBeforeResponse;
                 _proxyServer.ServerCertificateValidationCallback -= OnServerCertificateValidation;
@@ -365,6 +373,73 @@ namespace HttpTrafficMonitor.Services
             {
                 ErrorOccurred?.Invoke($"Auto-responder error: {ex.Message}");
             }
+        }
+
+        private Task OnBeforeTunnelConnectRequest(object sender, Titanium.Web.Proxy.EventArguments.TunnelConnectSessionEventArgs e)
+        {
+            string host = e.HttpClient.Request.RequestUri.Host;
+
+            if (SslPassthroughDomains.Any(d => host.Contains(d, StringComparison.OrdinalIgnoreCase)))
+            {
+                // Disable MITM for this domain — traffic passes through as raw TCP tunnel.
+                // Cloudflare and similar services won't detect the proxy.
+                e.DecryptSsl = false;
+
+                if (!_isPaused)
+                {
+                    // Still log the CONNECT request with available metadata
+                    int id = Interlocked.Increment(ref _requestCounter);
+                    string processName = "Unknown";
+                    int processId = 0;
+                    try
+                    {
+                        processId = e.HttpClient.ProcessId.Value;
+                        processName = GetProcessNameById(processId);
+                    }
+                    catch { }
+
+                    var entry = new HttpRequestEntry
+                    {
+                        Id = id,
+                        Timestamp = DateTime.Now,
+                        ProcessName = processName,
+                        ProcessId = processId,
+                        Method = "CONNECT",
+                        Url = $"https://{host}:{e.HttpClient.Request.RequestUri.Port}/",
+                        Host = host,
+                        Scheme = "https",
+                        RequestHeaders = $"CONNECT {host}:{e.HttpClient.Request.RequestUri.Port} HTTP/1.1\r\nHost: {host}",
+                        RequestBody = string.Empty,
+                        StatusCode = 200,
+                        ResponseHeaders = "HTTP/1.1 200 Connection Established\r\nX-Ssl-Passthrough: true",
+                        ResponseBody = "[SSL Passthrough — TLS not intercepted]",
+                        IsComplete = true,
+                        IsSslPassthrough = true,
+                    };
+
+                    RequestCaptured?.Invoke(entry);
+                    ResponseUpdated?.Invoke(entry);
+                }
+            }
+
+            return Task.CompletedTask;
+        }
+
+        private string GetProcessNameById(int pid)
+        {
+            if (pid <= 0) return "Unknown";
+
+            if (_processNameCache.TryGetValue(pid, out string? cached))
+                return cached;
+
+            try
+            {
+                using var process = Process.GetProcessById(pid);
+                string name = process.ProcessName;
+                lock (_lock) { _processNameCache[pid] = name; }
+                return name;
+            }
+            catch { return "Unknown"; }
         }
 
         private void OnProxyException(Exception ex)

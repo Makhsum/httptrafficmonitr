@@ -62,12 +62,16 @@
                        VerticalAlignment="Center" FontSize="11" Margin="0,0,12,0"/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
                 <RadioButton Content="Req Headers" Tag="RequestHeaders" GroupName="DiffTab"
+                             AutomationProperties.AutomationId="Comparison.RequestHeadersTab"
                              Margin="0,0,8,0" IsChecked="True" Checked="DiffTab_Checked"/>
                 <RadioButton Content="Req Body" Tag="RequestBody" GroupName="DiffTab"
+                             AutomationProperties.AutomationId="Comparison.RequestBodyTab"
                              Margin="0,0,8,0" Checked="DiffTab_Checked"/>
                 <RadioButton Content="Resp Headers" Tag="ResponseHeaders" GroupName="DiffTab"
+                             AutomationProperties.AutomationId="Comparison.ResponseHeadersTab"
                              Margin="0,0,8,0" Checked="DiffTab_Checked"/>
                 <RadioButton Content="Resp Body" Tag="ResponseBody" GroupName="DiffTab"
+                             AutomationProperties.AutomationId="Comparison.ResponseBodyTab"
                              Checked="DiffTab_Checked"/>
             </StackPanel>
         </DockPanel>

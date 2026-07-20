@@ -40,6 +40,7 @@ namespace HttpTrafficMonitor.Models
     {
         public string ExcludedDomains { get; set; } = string.Empty;
         public string ExcludedProcesses { get; set; } = string.Empty;
+        public string SslPassthroughDomains { get; set; } = string.Empty;
         public List<FilterPreset> FilterPresets { get; set; } = new();
         public List<AlertRule> AlertRules { get; set; } = new();
         public List<AutoResponderRule> AutoResponderRules { get; set; } = new();

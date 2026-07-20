@@ -35,12 +35,16 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <ComboBox Grid.Column="0" ItemsSource="{x:Static vm:ReplayRequestViewModel.Methods}"
-                      SelectedItem="{Binding Method}" FontSize="13" Margin="0,0,6,0"/>
+                      SelectedItem="{Binding Method}"
+                      AutomationProperties.AutomationId="Replay.MethodComboBox"
+                      FontSize="13" Margin="0,0,6,0"/>
             <TextBox Grid.Column="1" Text="{Binding Url, UpdateSourceTrigger=PropertyChanged}"
                      FontFamily="Cascadia Code,Consolas" FontSize="13"
+                     AutomationProperties.AutomationId="Replay.UrlTextBox"
                      Padding="6,4"/>
             <ui:Button Grid.Column="2" Content="Send" Command="{Binding SendCommand}"
                        Appearance="Primary" Icon="{ui:SymbolIcon Send24}"
+                       AutomationProperties.AutomationId="Replay.SendButton"
                        Margin="6,0,0,0" FontSize="13"/>
         </Grid>
 
