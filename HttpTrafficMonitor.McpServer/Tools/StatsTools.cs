@@ -22,48 +22,36 @@ public static class StatsTools
                 sb.AppendLine($"Total Requests:    {totalEl}");
             if (result.TryGetProperty("errorCount", out var errEl))
                 sb.AppendLine($"Errors:            {errEl}");
-            if (result.TryGetProperty("dataTransferred", out var dataEl))
-                sb.AppendLine($"Data Transferred:  {FormatBytes(dataEl)}");
-            if (result.TryGetProperty("averageDuration", out var avgEl))
-                sb.AppendLine($"Avg Duration:      {avgEl}ms");
+            if (result.TryGetProperty("totalBytesFormatted", out var dataEl))
+                sb.AppendLine($"Data Transferred:  {dataEl.GetString()}");
+            if (result.TryGetProperty("slowRequestCount", out var slowCountEl))
+                sb.AppendLine($"Slow Requests:     {slowCountEl}");
 
             sb.AppendLine();
 
-            // Method breakdown
-            if (result.TryGetProperty("methodBreakdown", out var methodsEl))
+            // Method breakdown, the same four counters as the app's status bar
+            sb.AppendLine("--- Method Breakdown ---");
+            foreach (var (method, key) in new[] { ("GET", "getCount"), ("POST", "postCount"), ("PUT", "putCount"), ("DELETE", "deleteCount") })
             {
-                sb.AppendLine("--- Method Breakdown ---");
-                if (methodsEl.ValueKind == JsonValueKind.Object)
-                {
-                    foreach (var prop in methodsEl.EnumerateObject())
-                        sb.AppendLine($"  {prop.Name,-8} {prop.Value}");
-                }
-                else if (methodsEl.ValueKind == JsonValueKind.Array)
-                {
-                    foreach (var item in methodsEl.EnumerateArray())
-                    {
-                        var method = item.TryGetProperty("method", out var mEl) ? mEl.GetString() : "?";
-                        var count = item.TryGetProperty("count", out var cEl) ? cEl.ToString() : "?";
-                        sb.AppendLine($"  {method,-8} {count}");
-                    }
-                }
-                sb.AppendLine();
+                if (result.TryGetProperty(key, out var countEl))
+                    sb.AppendLine($"  {method,-8} {countEl}");
             }
+            sb.AppendLine();
 
             // Slow requests
-            if (result.TryGetProperty("slowRequests", out var slowEl) && slowEl.ValueKind == JsonValueKind.Array && slowEl.GetArrayLength() > 0)
+            if (result.TryGetProperty("slowestRequests", out var slowEl) && slowEl.ValueKind == JsonValueKind.Array && slowEl.GetArrayLength() > 0)
             {
                 sb.AppendLine("--- Slowest Requests ---");
                 foreach (var req in slowEl.EnumerateArray())
                 {
                     var id = req.TryGetProperty("id", out var idEl) ? idEl.ToString() : "?";
                     var url = req.TryGetProperty("url", out var uEl) ? uEl.GetString() : "?";
-                    var duration = req.TryGetProperty("duration", out var dEl) ? dEl.ToString() : "?";
+                    var duration = TrafficTools.FormatDuration(req);
 
                     if (url != null && url.Length > 60)
                         url = url[..57] + "...";
 
-                    sb.AppendLine($"  [{id}] {url} ({duration}ms)");
+                    sb.AppendLine($"  [{id}] {url} ({duration})");
                 }
                 sb.AppendLine();
             }
@@ -190,22 +178,6 @@ public static class StatsTools
         }
     }
 
-    private static string FormatBytes(JsonElement element)
-    {
-        if (element.ValueKind == JsonValueKind.Number)
-        {
-            var bytes = element.GetInt64();
-            return bytes switch
-            {
-                >= 1_073_741_824 => $"{bytes / 1_073_741_824.0:F2} GB",
-                >= 1_048_576 => $"{bytes / 1_048_576.0:F2} MB",
-                >= 1024 => $"{bytes / 1024.0:F2} KB",
-                _ => $"{bytes} bytes"
-            };
-        }
-        return element.GetString() ?? "?";
-    }
-
     private static void FormatDistribution(StringBuilder sb, JsonElement element, string keyName, int limit)
     {
         int count = 0;
@@ -258,7 +230,7 @@ public static class StatsTools
     private static void FormatComparisonProperties(StringBuilder sb, JsonElement result, int id1, int id2)
     {
         // Try common comparison patterns
-        string[] comparisonFields = ["method", "url", "statusCode", "duration", "process"];
+        string[] comparisonFields = ["method", "url", "statusCode", "durationMs", "process"];
 
         if (result.TryGetProperty("request1", out var r1) && result.TryGetProperty("request2", out var r2))
         {

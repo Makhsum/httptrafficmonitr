@@ -65,12 +65,11 @@ public static class TrafficTools
 
             if (result.TryGetProperty("statusCode", out var statusEl))
                 sb.AppendLine($"Status:    {statusEl}");
-            if (result.TryGetProperty("process", out var processEl))
+            if (result.TryGetProperty("processName", out var processEl))
                 sb.AppendLine($"Process:   {processEl.GetString()}");
             if (result.TryGetProperty("timestamp", out var tsEl))
                 sb.AppendLine($"Timestamp: {tsEl.GetString()}");
-            if (result.TryGetProperty("duration", out var durEl))
-                sb.AppendLine($"Duration:  {durEl}ms");
+            sb.AppendLine($"Duration:  {FormatDuration(result)}");
             if (result.TryGetProperty("isBookmarked", out var bmEl))
                 sb.AppendLine($"Bookmarked: {bmEl.GetBoolean()}");
 
@@ -135,7 +134,8 @@ public static class TrafficTools
             }
 
             // Timing breakdown
-            if (result.TryGetProperty("timing", out var timing) && timing.ValueKind != JsonValueKind.Null)
+            if (result.TryGetProperty("timing", out var timing) && timing.ValueKind == JsonValueKind.Object
+                && timing.EnumerateObject().Any())
             {
                 sb.AppendLine("--- Timing Breakdown ---");
                 FormatTiming(sb, timing);
@@ -260,10 +260,10 @@ public static class TrafficTools
             var id = req.TryGetProperty("id", out var idEl) ? idEl.ToString() : "?";
             var ts = req.TryGetProperty("timestamp", out var tsEl) ? FormatTimestamp(tsEl.GetString()) : "?";
             var method = req.TryGetProperty("method", out var mEl) ? mEl.GetString() : "?";
-            var status = req.TryGetProperty("statusCode", out var sEl) ? sEl.ToString() : "?";
+            var status = req.TryGetProperty("statusCode", out var sEl) ? sEl.ToString() : "-";
             var url = req.TryGetProperty("url", out var uEl) ? uEl.GetString() : "?";
-            var duration = req.TryGetProperty("duration", out var dEl) ? $"{dEl}ms" : "?";
-            var proc = req.TryGetProperty("process", out var pEl) ? pEl.GetString() : "?";
+            var duration = FormatDuration(req);
+            var proc = req.TryGetProperty("processName", out var pEl) ? pEl.GetString() : "?";
 
             // Truncate URL if too long
             if (url != null && url.Length > 80)
@@ -275,6 +275,15 @@ public static class TrafficTools
         sb.AppendLine();
         sb.AppendLine($"Total: {totalCount}");
         return sb.ToString().TrimEnd();
+    }
+
+    // Same wording as the Duration column of the app: "-" while the response is still pending
+    internal static string FormatDuration(JsonElement req)
+    {
+        if (!req.TryGetProperty("durationMs", out var dEl) || dEl.ValueKind != JsonValueKind.Number)
+            return "-";
+        var ms = dEl.GetDouble();
+        return ms < 1000 ? $"{ms:F0} ms" : $"{ms / 1000:F2} s";
     }
 
     private static string FormatTimestamp(string? timestamp)
@@ -323,9 +332,9 @@ public static class TrafficTools
             return;
         }
 
-        if (tls.TryGetProperty("protocol", out var protoEl))
+        if (tls.TryGetProperty("tlsVersion", out var protoEl) && !string.IsNullOrEmpty(protoEl.GetString()))
             sb.AppendLine($"Protocol:       {protoEl.GetString()}");
-        if (tls.TryGetProperty("cipherSuite", out var cipherEl))
+        if (tls.TryGetProperty("cipherSuite", out var cipherEl) && !string.IsNullOrEmpty(cipherEl.GetString()))
             sb.AppendLine($"Cipher Suite:   {cipherEl.GetString()}");
         if (tls.TryGetProperty("serverCertificate", out var certEl) && certEl.ValueKind != JsonValueKind.Null)
         {
@@ -364,12 +373,12 @@ public static class TrafficTools
         {
             count++;
             var direction = msg.TryGetProperty("direction", out var dirEl) ? dirEl.GetString() : "?";
-            var type = msg.TryGetProperty("type", out var typeEl) ? typeEl.GetString() : "?";
+            var type = msg.TryGetProperty("frameType", out var typeEl) ? typeEl.GetString() : "?";
             var timestamp = msg.TryGetProperty("timestamp", out var tsEl) ? FormatTimestamp(tsEl.GetString()) : "?";
-            var data = msg.TryGetProperty("data", out var dataEl) ? dataEl.GetString() : "";
-            var length = msg.TryGetProperty("length", out var lenEl) ? lenEl.ToString() : "?";
+            var data = msg.TryGetProperty("payload", out var dataEl) ? dataEl.GetString() : "";
+            var length = msg.TryGetProperty("payloadLength", out var lenEl) ? lenEl.ToString() : "?";
 
-            var arrow = direction?.Equals("send", StringComparison.OrdinalIgnoreCase) == true ? ">>" : "<<";
+            var arrow = direction?.Equals("Sent", StringComparison.OrdinalIgnoreCase) == true ? ">>" : "<<";
 
             sb.AppendLine($"  {arrow} [{timestamp}] ({type}, {length} bytes)");
             if (!string.IsNullOrEmpty(data))

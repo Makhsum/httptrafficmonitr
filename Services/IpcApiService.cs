@@ -1124,6 +1124,13 @@ namespace HttpTrafficMonitor.Services
 
                 int slowCount = snapshot.Count(r => r.IsSlow);
 
+                var slowest = snapshot
+                    .Where(r => r.Duration.HasValue)
+                    .OrderByDescending(r => r.Duration!.Value)
+                    .Take(5)
+                    .Select(MapRequestSummary)
+                    .ToArray();
+
                 return new
                 {
                     totalRequests = _vm.TotalRequests,
@@ -1136,7 +1143,8 @@ namespace HttpTrafficMonitor.Services
                     totalBytesFormatted = _vm.TotalDataFormatted,
                     domainDistribution = domainDist,
                     processDistribution = processDist,
-                    slowRequestCount = slowCount
+                    slowRequestCount = slowCount,
+                    slowestRequests = slowest
                 };
             });
 
