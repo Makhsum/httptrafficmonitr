@@ -1603,6 +1603,13 @@ namespace HttpTrafficMonitor.Services
                     tlsVersion = e.TlsInfo.TlsVersion,
                     cipherSuite = e.TlsInfo.CipherSuite,
                     keySize = e.TlsInfo.KeySize,
+                    chain = e.TlsInfo.Chain.Select(c => new
+                    {
+                        subject = c.Subject,
+                        issuer = c.Issuer,
+                        thumbprint = c.Thumbprint,
+                        notAfter = c.NotAfter.ToString("O")
+                    }).ToArray(),
                     hasErrors = e.TlsInfo.HasErrors,
                     errorSummary = e.TlsInfo.ErrorSummary,
                     isExpired = e.TlsInfo.IsExpired,

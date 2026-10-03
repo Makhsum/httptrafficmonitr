@@ -168,7 +168,7 @@ public static class TrafficTools
         }
     }
 
-    [McpServerTool, Description("Get TLS/SSL certificate and connection details for a specific request.")]
+    [McpServerTool, Description("Get TLS/SSL certificate and connection details for a specific request, including the certificate chain and any certificate errors.")]
     public static async Task<string> get_request_tls_info(
         IpcClient client,
         [Description("The ID of the request")] int requestId)
@@ -392,6 +392,34 @@ public static class TrafficTools
             sb.AppendLine($"Valid Until:    {naFlat.GetString()}");
         if (tls.TryGetProperty("thumbprint", out var thFlat))
             sb.AppendLine($"Thumbprint:     {thFlat.GetString()}");
+
+        // The same chain and errors the Certificate tab shows
+        if (tls.TryGetProperty("chain", out var chainEl) && chainEl.ValueKind == JsonValueKind.Array
+            && chainEl.GetArrayLength() > 0)
+        {
+            sb.AppendLine("Certificate Chain:");
+            int position = 0;
+            foreach (var link in chainEl.EnumerateArray())
+            {
+                position++;
+                var subject = link.TryGetProperty("subject", out var linkSubEl) ? linkSubEl.GetString() : "?";
+                var issuer = link.TryGetProperty("issuer", out var linkIssEl) ? linkIssEl.GetString() : "?";
+                var thumbprint = link.TryGetProperty("thumbprint", out var linkThEl) ? linkThEl.GetString() : "?";
+                sb.AppendLine($"  {position}. {subject}");
+                sb.AppendLine($"     Issuer:     {issuer}");
+                sb.AppendLine($"     Thumbprint: {thumbprint}");
+            }
+        }
+        if (tls.TryGetProperty("hasErrors", out var hasErrorsEl) && hasErrorsEl.ValueKind is JsonValueKind.True or JsonValueKind.False)
+        {
+            var errors = tls.TryGetProperty("errorSummary", out var errorsEl) ? errorsEl.GetString() : null;
+            if (!hasErrorsEl.GetBoolean())
+                sb.AppendLine("Certificate Errors: none - the certificate was accepted without errors.");
+            else if (string.IsNullOrEmpty(errors))
+                sb.AppendLine("Certificate Errors: yes, but the app recorded no details.");
+            else
+                sb.AppendLine($"Certificate Errors: {errors}");
+        }
     }
 
     private static void FormatWebSocketMessages(StringBuilder sb, JsonElement messages)
