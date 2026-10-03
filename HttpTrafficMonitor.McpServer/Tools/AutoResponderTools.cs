@@ -1,5 +1,6 @@
 using ModelContextProtocol.Server;
 using System.ComponentModel;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 
@@ -185,6 +186,10 @@ public static class AutoResponderTools
 
             return sb.ToString().TrimEnd();
         }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            return $"No auto-responder rule with ID '{ruleId}' exists. Use get_auto_responder_rules to list the rules.";
+        }
         catch (HttpRequestException ex)
         {
             return $"Error: {ex.Message}. Make sure HttpTrafficMonitor is running.";
@@ -200,6 +205,10 @@ public static class AutoResponderTools
         {
             await client.DeleteAsync($"/auto-responder/rules/{ruleId}");
             return $"Auto-responder rule '{ruleId}' deleted successfully.";
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            return $"No auto-responder rule with ID '{ruleId}' exists. Use get_auto_responder_rules to list the rules.";
         }
         catch (HttpRequestException ex)
         {
