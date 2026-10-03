@@ -1,5 +1,6 @@
 using ModelContextProtocol.Server;
 using System.ComponentModel;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 
@@ -96,8 +97,12 @@ public static class AlertTools
     {
         try
         {
-            await client.DeleteAsync($"/alerts/rules/{ruleId}");
+            await client.DeleteAsync($"/alerts/rules/{Uri.EscapeDataString(ruleId)}");
             return $"Alert rule '{ruleId}' deleted successfully.";
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            return $"No alert rule with ID '{ruleId}' exists. Use get_alert_rules to list the rules.";
         }
         catch (HttpRequestException ex)
         {
