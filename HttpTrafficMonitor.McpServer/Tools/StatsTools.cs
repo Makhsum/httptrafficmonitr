@@ -134,40 +134,19 @@ public static class StatsTools
             sb.AppendLine($"=== Comparison: Request #{requestId1} vs #{requestId2} ===");
             sb.AppendLine();
 
-            // Format diffs section
-            if (result.TryGetProperty("diffs", out var diffsEl) && diffsEl.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var diff in diffsEl.EnumerateArray())
-                {
-                    var field = diff.TryGetProperty("field", out var fEl) ? fEl.GetString() : "?";
-                    var value1 = diff.TryGetProperty("value1", out var v1El) ? FormatDiffValue(v1El) : "(empty)";
-                    var value2 = diff.TryGetProperty("value2", out var v2El) ? FormatDiffValue(v2El) : "(empty)";
-                    var changed = diff.TryGetProperty("changed", out var chEl) && chEl.GetBoolean();
+            FormatComparisonProperties(sb, result, requestId1, requestId2);
+            FormatTimingComparison(sb, result, requestId1, requestId2);
 
-                    if (changed)
-                    {
-                        sb.AppendLine($"[DIFFERENT] {field}:");
-                        sb.AppendLine($"  Request #{requestId1}: {TruncateValue(value1, 200)}");
-                        sb.AppendLine($"  Request #{requestId2}: {TruncateValue(value2, 200)}");
-                    }
-                    else
-                    {
-                        sb.AppendLine($"[SAME] {field}: {TruncateValue(value1, 200)}");
-                    }
+            // Line-by-line differences, the same four diffs as the tabs of the app's comparison view
+            if (result.TryGetProperty("diffs", out var diffsEl) && diffsEl.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var (title, key) in new[] { ("Req Headers", "requestHeaders"), ("Req Body", "requestBody"), ("Resp Headers", "responseHeaders"), ("Resp Body", "responseBody") })
+                {
+                    sb.AppendLine($"--- {title} ---");
+                    var diff = diffsEl.TryGetProperty(key, out var diffEl) ? diffEl.GetString() : null;
+                    FormatDiffLines(sb, diff ?? "", 100);
                     sb.AppendLine();
                 }
-            }
-            else
-            {
-                // Fallback: format all top-level properties as comparison fields
-                FormatComparisonProperties(sb, result, requestId1, requestId2);
-            }
-
-            // Summary
-            if (result.TryGetProperty("summary", out var summaryEl))
-            {
-                sb.AppendLine("--- Summary ---");
-                sb.AppendLine(summaryEl.GetString());
             }
 
             return sb.ToString().TrimEnd();
@@ -219,6 +198,39 @@ public static class StatsTools
             JsonValueKind.Undefined => "(undefined)",
             _ => el.ToString()
         };
+    }
+
+    // Same line as the app's comparison view shows above its diff; empty while one of them is pending
+    private static void FormatTimingComparison(StringBuilder sb, JsonElement result, int id1, int id2)
+    {
+        if (!result.TryGetProperty("request1", out var r1) || !result.TryGetProperty("request2", out var r2))
+            return;
+        if (!r1.TryGetProperty("durationMs", out var d1) || d1.ValueKind != JsonValueKind.Number
+            || !r2.TryGetProperty("durationMs", out var d2) || d2.ValueKind != JsonValueKind.Number)
+            return;
+
+        sb.AppendLine($"Timing: #{id1}: {TrafficTools.FormatDuration(r1)}  |  #{id2}: {TrafficTools.FormatDuration(r2)}  |  \u0394: {Math.Abs(d1.GetDouble() - d2.GetDouble()):F0} ms");
+        sb.AppendLine();
+    }
+
+    // Keeps the changed lines of a "+ "/"- "/"~ " prefixed diff from the app and leaves out the unchanged ones
+    private static void FormatDiffLines(StringBuilder sb, string diff, int maxLines)
+    {
+        var changed = diff.Split('\n')
+            .Select(line => line.TrimEnd('\r'))
+            .Where(line => line.StartsWith("+ ") || line.StartsWith("- ") || line.StartsWith("~ "))
+            .ToList();
+
+        if (changed.Count == 0)
+        {
+            sb.AppendLine("(no differences)");
+            return;
+        }
+
+        foreach (var line in changed.Take(maxLines))
+            sb.AppendLine(TruncateValue(line, 200));
+        if (changed.Count > maxLines)
+            sb.AppendLine($"... {changed.Count - maxLines} more changed lines");
     }
 
     private static string TruncateValue(string value, int maxLength)

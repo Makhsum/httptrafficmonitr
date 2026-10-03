@@ -1477,6 +1477,7 @@ namespace HttpTrafficMonitor.Services
                 durationMs = e.Duration?.TotalMilliseconds,
                 processName = e.ProcessName,
                 isBookmarked = e.IsBookmarked,
+                bookmarkNotes = e.BookmarkNotes,
                 isSlow = e.IsSlow,
                 isWebSocket = e.IsWebSocket,
                 isComplete = e.IsComplete

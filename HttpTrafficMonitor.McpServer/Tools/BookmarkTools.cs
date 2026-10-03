@@ -17,7 +17,7 @@ public static class BookmarkTools
         {
             var result = await client.PostAsync($"/bookmarks/{requestId}/toggle", new { notes });
 
-            var isBookmarked = result.TryGetProperty("bookmarked", out var bookmarkedEl)
+            var isBookmarked = result.TryGetProperty("isBookmarked", out var bookmarkedEl)
                 && bookmarkedEl.GetBoolean();
 
             return isBookmarked
@@ -36,9 +36,11 @@ public static class BookmarkTools
     {
         try
         {
-            var result = await client.GetAsync("/bookmarks");
+            // The app pages this list (50 by default); ask for all of them at once
+            var result = await client.GetAsync($"/bookmarks?take={int.MaxValue}");
 
-            if (result.ValueKind != JsonValueKind.Array || result.GetArrayLength() == 0)
+            if (!result.TryGetProperty("requests", out var requestsEl)
+                || requestsEl.ValueKind != JsonValueKind.Array || requestsEl.GetArrayLength() == 0)
             {
                 return "No bookmarked requests found.";
             }
@@ -46,7 +48,7 @@ public static class BookmarkTools
             var lines = new List<string>();
             var count = 0;
 
-            foreach (var bookmark in result.EnumerateArray())
+            foreach (var bookmark in requestsEl.EnumerateArray())
             {
                 var id = bookmark.TryGetProperty("id", out var idEl) ? idEl.GetInt32() : 0;
                 var method = bookmark.TryGetProperty("method", out var methodEl)
@@ -55,7 +57,7 @@ public static class BookmarkTools
                 var url = bookmark.TryGetProperty("url", out var urlEl)
                     ? urlEl.GetString() ?? "?"
                     : "?";
-                var bookmarkNotes = bookmark.TryGetProperty("notes", out var notesEl)
+                var bookmarkNotes = bookmark.TryGetProperty("bookmarkNotes", out var notesEl)
                     ? notesEl.GetString() ?? ""
                     : "";
 

@@ -36,5 +36,7 @@ None yet — no version has been tagged so far. Until the first release, build t
 - MCP server: `get_traffic_stats` includes the data transferred, the GET/POST/PUT/DELETE counts and the slowest requests, the same figures as the app's status bar.
 - MCP server: `compare_requests` writes both durations the way the app does (`177 ms`, `-` while pending) instead of a raw millisecond number.
 - MCP server: WebSocket messages show their frame type, size and payload, and TLS details show the protocol when the app has it.
+- MCP server: `get_bookmarks` lists every request bookmarked in the app, with its notes, instead of `No bookmarked requests found.`; `toggle_bookmark` says whether the request is now bookmarked.
+- MCP server: `compare_requests` shows the changed lines of the request and response headers and bodies, the same diff as the app's Compare view, and its timing line (`A | B | Δ`).
 
 [Unreleased]: https://github.com/Makhsum/httptrafficmonitr/commits/main
