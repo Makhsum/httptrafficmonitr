@@ -18,7 +18,10 @@ public class IpcClient : IDisposable
     public IpcClient()
     {
         var baseUrl = Environment.GetEnvironmentVariable("HTM_API_URL") ?? "http://localhost:18081";
-        _http = new HttpClient { BaseAddress = new Uri(baseUrl), Timeout = TimeSpan.FromSeconds(30) };
+        // Talk to the app directly: while capturing, the system proxy is the app itself, and going
+        // through it would show these calls in the grid and fire the user's alert rules
+        var handler = new HttpClientHandler { UseProxy = false };
+        _http = new HttpClient(handler) { BaseAddress = new Uri(baseUrl), Timeout = TimeSpan.FromSeconds(30) };
     }
 
     public async Task<JsonElement> GetAsync(string path)
