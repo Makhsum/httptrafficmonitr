@@ -27,7 +27,7 @@ namespace HttpTrafficMonitor.Services
         }
 
         public async Task<ReplayResult> SendRequestAsync(string method, string url,
-            Dictionary<string, string> headers, string? body)
+            IEnumerable<KeyValuePair<string, string>> headers, string? body)
         {
             var result = new ReplayResult { RequestTimestamp = DateTime.Now };
             var sw = Stopwatch.StartNew();
@@ -38,7 +38,8 @@ namespace HttpTrafficMonitor.Services
 
                 if (body != null && method != "GET" && method != "HEAD")
                 {
-                    string contentType = headers.GetValueOrDefault("Content-Type", "application/octet-stream");
+                    string contentType = headers.LastOrDefault(h => h.Key.Equals("Content-Type", StringComparison.OrdinalIgnoreCase)).Value
+                        ?? "application/octet-stream";
                     request.Content = new StringContent(body, Encoding.UTF8);
                     request.Content.Headers.Clear();
                     request.Content.Headers.TryAddWithoutValidation("Content-Type", contentType);

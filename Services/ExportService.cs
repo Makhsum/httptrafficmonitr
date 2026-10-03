@@ -24,7 +24,8 @@ namespace HttpTrafficMonitor.Services
                 if (key.Equals("Host", StringComparison.OrdinalIgnoreCase)) continue;
                 // curl sets the length of the body it sends; the captured one may not match the formatted body
                 if (key.Equals("Content-Length", StringComparison.OrdinalIgnoreCase)) continue;
-                sb.Append($" \\\n  -H {ShellQuote($"{key}: {value}")}");
+                // curl drops "Name:" with no value; "Name;" sends the header empty
+                sb.Append($" \\\n  -H {ShellQuote(value.Length == 0 ? $"{key};" : $"{key}: {value}")}");
             }
 
             // Without --compressed curl prints a gzip/deflate/br response as raw bytes

@@ -81,7 +81,7 @@ namespace HttpTrafficMonitor.ViewModels
 
             try
             {
-                var headers = HttpReplayService.ParseHeaders(RequestHeaders);
+                var headers = HttpReplayService.ParseHeaderList(RequestHeaders);
                 var result = await _replayService.SendRequestAsync(Method, Url, headers,
                     string.IsNullOrWhiteSpace(RequestBody) ? null : RequestBody);
 
