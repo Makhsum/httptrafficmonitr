@@ -49,5 +49,6 @@ None yet — no version has been tagged so far. Until the first release, build t
 - A CSV export writes a quote inside a URL, host or process name twice, so a URL such as `?q="a,b"` no longer splits its row into an extra column.
 - Auto-Responder: a matched rule answers with the status code it is set to (for example `503` or `404`) instead of always `200`, and a mocked request shows its status, size and duration in the grid and its response in the detail tabs.
 - MCP server: `add_auto_responder_rule` and `update_auto_responder_rule` show the rule's URL pattern, method and status code in their confirmation.
+- The Top Domains and Top Processes charts list each name and count in a legend beside the pie, in a color that follows the theme; before, the labels sat on the slices, piled up once several small slices were side by side, and turned white on the light theme's near-white card.
 
 [Unreleased]: https://github.com/Makhsum/httptrafficmonitr/commits/main
