@@ -29,7 +29,7 @@ For developers and testers on Windows who need to see what an app, a service or 
 | Platforms | Windows 10/11 | Windows, macOS, Linux | Windows, macOS, Linux | Windows, macOS, Linux | Wherever the browser runs |
 | Captures traffic of other apps, not just the browser | Yes, system-wide, with the process name | Yes | Yes | Yes | No — only the page it is attached to |
 | Interface | Desktop app | Desktop app | Desktop app | Terminal and web UI | Panel in the browser |
-| MCP server for AI assistants | Built in, free | Built in, Pro tier and up | No | No | No |
+| MCP server for AI assistants | Built in, free | Built in, Pro tier and up | Not built in | Not built in | Not built in |
 
 Choose this tool when you are on Windows and want a free graphical inspector that an AI assistant can work with. If you need macOS or Linux, or to script the proxy itself, mitmproxy, Charles or Fiddler Everywhere fit better. *(Details of the other tools as of October 2026 — corrections welcome.)*
 
