@@ -2,7 +2,7 @@
 
 A Windows desktop app that acts as a local HTTP/HTTPS man-in-the-middle proxy, giving you a Fiddler/Charles-style traffic inspector with modern WPF Fluent UI — plus an **MCP server** so AI assistants (Claude, etc.) can drive it directly.
 
-![Idle state](docs/screenshots/01-idle.png)
+![Live HTTPS capture: start capturing, requests arrive, one request is inspected](docs/demo/live-capture.gif)
 
 ## What it does
 
@@ -59,6 +59,10 @@ Full Fluent Design theming via [WPF-UI](https://github.com/lepoco/wpfui).
 ## MCP Server
 
 `HttpTrafficMonitor.McpServer` exposes the running app to AI assistants over the [Model Context Protocol](https://modelcontextprotocol.io) (stdio transport). The main app hosts a small local REST API (`http://localhost:18081/api/...`) via `IpcApiService`; the MCP server is a thin process that talks to that API and surfaces it as MCP tools — so an assistant can start/stop capture, inspect and filter requests, manage alerts and auto-responder rules, replay/compose requests, and export data, all without touching the UI.
+
+Here an assistant answers a question about the captured traffic through the MCP server (the tool replies are from a real session, shortened to the lines that matter):
+
+![An AI assistant using the MCP server to find the failed requests in a capture](docs/demo/mcp-assistant.gif)
 
 Tool groups (see `HttpTrafficMonitor.McpServer/Tools/`):
 
