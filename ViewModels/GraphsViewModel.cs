@@ -8,6 +8,7 @@ using LiveChartsCore;
 using LiveChartsCore.Defaults;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
+using LiveChartsCore.Themes;
 using SkiaSharp;
 
 namespace HttpTrafficMonitor.ViewModels
@@ -24,6 +25,13 @@ namespace HttpTrafficMonitor.ViewModels
         private long _totalBytesInWindow;
         private readonly object _lock = new();
         private const int MaxDataPoints = 120;
+
+        // Slices on screen and the color each name got, per pie, so a tick only
+        // moves the slices whose count changed and a name keeps its color
+        private readonly Dictionary<string, PieSeries<ObservableValue>> _domainSlices = new();
+        private readonly Dictionary<string, SKColor> _domainColors = new();
+        private readonly Dictionary<string, PieSeries<ObservableValue>> _processSlices = new();
+        private readonly Dictionary<string, SKColor> _processColors = new();
 
         // Requests per second chart
         public ISeries[] RpsSeries { get; }
@@ -214,23 +222,71 @@ namespace HttpTrafficMonitor.ViewModels
                 processes = _processTraffic.OrderByDescending(x => x.Value).Take(8).ToDictionary(x => x.Key, x => x.Value);
             }
 
-            RebuildPie(DomainPieSeries, domains);
-            RebuildPie(ProcessPieSeries, processes);
+            UpdatePie(DomainPieSeries, _domainSlices, _domainColors, domains);
+            UpdatePie(ProcessPieSeries, _processSlices, _processColors, processes);
         }
 
-        private static void RebuildPie(ObservableCollection<ISeries> target, Dictionary<string, long> data)
+        private static void UpdatePie(ObservableCollection<ISeries> target,
+            Dictionary<string, PieSeries<ObservableValue>> slices,
+            Dictionary<string, SKColor> colors,
+            Dictionary<string, long> data)
         {
-            target.Clear();
+            // Building new series on every tick replays the pie's grow-in animation
+            // and LiveCharts hands every new series the next default color, so the
+            // slices are kept and only touched when their count changes.
+            foreach (var name in slices.Keys.Where(n => !data.ContainsKey(n)).ToList())
+            {
+                target.Remove(slices[name]);
+                slices.Remove(name);
+            }
+
             foreach (var (name, count) in data)
             {
+                if (slices.TryGetValue(name, out var slice))
+                {
+                    if (slice.Values!.First().Value != count)
+                    {
+                        slice.Values!.First().Value = count;
+                        slice.Name = $"{name}: {count}";
+                    }
+                    continue;
+                }
+
                 // Labels on the slices pile up once a few small slices sit side by side,
                 // so the name and count go to the chart's legend instead.
-                target.Add(new PieSeries<long>
+                slice = new PieSeries<ObservableValue>
                 {
-                    Values = new[] { count },
-                    Name = $"{name}: {count}"
-                });
+                    Values = new[] { new ObservableValue(count) },
+                    Name = $"{name}: {count}",
+                    Fill = new SolidColorPaint(PickColor(name, slices.Values, colors))
+                };
+                slices[name] = slice;
+                target.Add(slice);
             }
+
+            // Keep the slices and the legend ordered by count, largest first
+            int index = 0;
+            foreach (var name in data.Keys)
+            {
+                int current = target.IndexOf(slices[name]);
+                if (current != index)
+                    target.Move(current, index);
+                index++;
+            }
+        }
+
+        private static SKColor PickColor(string name, IEnumerable<PieSeries<ObservableValue>> shown, Dictionary<string, SKColor> colors)
+        {
+            // A name that comes back gets its old color unless a slice on screen took it
+            var used = shown.Select(s => ((SolidColorPaint)s.Fill!).Color).ToHashSet();
+            if (colors.TryGetValue(name, out var color) && !used.Contains(color))
+                return color;
+
+            color = ColorPalletes.MaterialDesign500
+                .Select(c => new SKColor(c.R, c.G, c.B, c.A))
+                .First(c => !used.Contains(c));
+            colors[name] = color;
+            return color;
         }
 
         private void UpdateHistogram()
@@ -284,6 +340,8 @@ namespace HttpTrafficMonitor.ViewModels
             _bandwidthData.Clear();
             DomainPieSeries.Clear();
             ProcessPieSeries.Clear();
+            _domainSlices.Clear();
+            _processSlices.Clear();
             HistogramSeries = Array.Empty<ISeries>();
             OnPropertyChanged(nameof(HistogramSeries));
         }
