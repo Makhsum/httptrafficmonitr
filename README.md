@@ -229,3 +229,7 @@ HttpTrafficMonitor.McpServer/   Standalone MCP server (stdio) bridging to the ru
 ## UI automation
 
 Interactive controls across the main window and dialogs carry `AutomationProperties.AutomationId` (e.g. `Toolbar.StartButton`, `FilterBar.SearchTextBox`, `MainWindow.RequestsGrid`, `AdvancedFilter.ApplyFilterButton`, `AutoResponder.AddRuleButton`) so the app can be driven and tested via UI Automation / test tooling without relying on fragile name- or coordinate-based lookups.
+
+## Contributing
+
+Bug reports, feature ideas and pull requests are welcome. [Open an issue](https://github.com/Makhsum/httptrafficmonitr/issues/new/choose) with the bug-report or feature-request form, and read [CONTRIBUTING.md](CONTRIBUTING.md) for how to build and run the app and the MCP server from a fresh clone. Please report security problems privately as described in [SECURITY.md](SECURITY.md), and follow the [Code of Conduct](CODE_OF_CONDUCT.md). Changes are listed in [CHANGELOG.md](CHANGELOG.md).

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/Makhsum/httptrafficmonitr/security/policy
+    about: Please do not report security problems in a public issue — the security policy explains how to report them privately.
+  - name: Contribution guide
+    url: https://github.com/Makhsum/httptrafficmonitr/blob/main/CONTRIBUTING.md
+    about: How to build and run the app and the MCP server from source, and how to send a pull request.

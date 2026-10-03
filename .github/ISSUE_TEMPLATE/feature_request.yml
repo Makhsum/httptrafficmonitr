@@ -1,0 +1,46 @@
+name: Feature request
+description: Suggest something the app or the MCP server should do.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the idea! Please search the [existing issues](https://github.com/Makhsum/httptrafficmonitr/issues) first — a 👍 on an existing request helps more than a duplicate.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would it solve?
+      description: Describe what you are trying to do and what gets in the way today.
+      placeholder: When I debug an API, I have to ...
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: What would you like to happen?
+      description: Describe the feature as you imagine it — in the app, in the MCP server, or both.
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Which part would it change?
+      options:
+        - Desktop app
+        - MCP server
+        - Both
+        - Documentation
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you have considered
+      description: Workarounds you use today, or how another tool (Fiddler, Charles, mitmproxy, ...) handles it.
+  - type: checkboxes
+    id: contribute
+    attributes:
+      label: Contributing
+      options:
+        - label: I would like to implement this myself (see [CONTRIBUTING.md](https://github.com/Makhsum/httptrafficmonitr/blob/main/CONTRIBUTING.md)).

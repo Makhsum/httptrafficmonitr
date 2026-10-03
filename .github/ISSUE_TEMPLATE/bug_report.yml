@@ -1,0 +1,77 @@
+name: Bug report
+description: Something in the app or the MCP server does not work as described.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a problem. Please search the [existing issues](https://github.com/Makhsum/httptrafficmonitr/issues) first.
+
+        **Found a security problem?** Do not report it here — follow the [security policy](https://github.com/Makhsum/httptrafficmonitr/security/policy) instead.
+
+        Captured traffic can contain passwords, tokens and cookies: remove them from anything you paste below.
+  - type: input
+    id: windows-version
+    attributes:
+      label: Windows version
+      description: Press Win+R, run `winver` and copy the first lines.
+      placeholder: Windows 11 Pro 24H2 (OS Build 26100.2033)
+    validations:
+      required: true
+  - type: input
+    id: app-version
+    attributes:
+      label: App version
+      description: The release you downloaded (its name is in the zip file name), or the commit you built from (`git rev-parse --short HEAD`).
+      placeholder: v0.1.0, or commit 4fe4c59
+    validations:
+      required: true
+  - type: dropdown
+    id: component
+    attributes:
+      label: Where does it happen?
+      options:
+        - Desktop app
+        - MCP server
+        - Both
+        - Building from source
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the problem. Screenshots help.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What did you do, starting from a freshly started app?
+      placeholder: |
+        1. Click Start
+        2. Open https://example.com in the browser
+        3. Click the request in the grid
+        4. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error messages or logs
+      description: Error dialogs, MCP tool replies or console output. This is formatted as code automatically.
+      render: shell
+  - type: input
+    id: mcp-client
+    attributes:
+      label: MCP client
+      description: Only for MCP server problems — which client and version did you use?
+      placeholder: Claude Code 2.1, Claude Desktop 1.0, ...
