@@ -629,20 +629,7 @@ namespace HttpTrafficMonitor.Services
         private void HandleGetAlertRules(HttpListenerResponse response)
         {
             var rules = InvokeOnUI(() =>
-                _vm.AlertsVm.Rules.Select(r => new
-                {
-                    id = r.Id,
-                    name = r.Name,
-                    isEnabled = r.IsEnabled,
-                    type = r.Type.ToString(),
-                    pattern = r.Pattern,
-                    statusCodeMin = r.StatusCodeMin,
-                    statusCodeMax = r.StatusCodeMax,
-                    responseTimeThresholdMs = r.ResponseTimeThresholdMs,
-                    sizeThresholdBytes = r.SizeThresholdBytes,
-                    playSound = r.PlaySound,
-                    showToast = r.ShowToast
-                }).ToArray()
+                _vm.AlertsVm.Rules.Select(MapAlertRule).ToArray()
             );
             WriteJson(response, rules);
         }
@@ -651,8 +638,7 @@ namespace HttpTrafficMonitor.Services
         {
             var body = ReadBody<AlertRuleDto>(request);
 
-            string ruleId = string.Empty;
-            InvokeOnUI(() =>
+            var data = InvokeOnUI(() =>
             {
                 if (!Enum.TryParse<AlertRuleType>(body.Type, true, out var ruleType))
                     ruleType = AlertRuleType.StatusCode;
@@ -671,10 +657,10 @@ namespace HttpTrafficMonitor.Services
                     ShowToast = body.ShowToast ?? true
                 };
                 _vm.AlertsVm.Rules.Add(rule);
-                ruleId = rule.Id;
+                return MapAlertRule(rule);
             });
 
-            WriteJson(response, new { success = true, id = ruleId });
+            WriteJson(response, data);
         }
 
         private void HandleDeleteAlertRule(string path, HttpListenerResponse response)
@@ -1488,6 +1474,24 @@ namespace HttpTrafficMonitor.Services
                 isSlow = e.IsSlow,
                 isWebSocket = e.IsWebSocket,
                 isComplete = e.IsComplete
+            };
+        }
+
+        private static object MapAlertRule(AlertRule r)
+        {
+            return new
+            {
+                id = r.Id,
+                name = r.Name,
+                isEnabled = r.IsEnabled,
+                type = r.Type.ToString(),
+                pattern = r.Pattern,
+                statusCodeMin = r.StatusCodeMin,
+                statusCodeMax = r.StatusCodeMax,
+                responseTimeThresholdMs = r.ResponseTimeThresholdMs,
+                sizeThresholdBytes = r.SizeThresholdBytes,
+                playSound = r.PlaySound,
+                showToast = r.ShowToast
             };
         }
 

@@ -25,26 +25,7 @@ public static class AlertTools
                 {
                     count++;
                     sb.AppendLine($"Rule #{count}:");
-                    sb.AppendLine($"  ID:      {GetString(rule, "id")}");
-                    sb.AppendLine($"  Name:    {GetString(rule, "name")}");
-                    sb.AppendLine($"  Type:    {GetString(rule, "type")}");
-                    sb.AppendLine($"  Enabled: {GetString(rule, "isEnabled")}");
-
-                    var pattern = GetString(rule, "pattern");
-                    if (!string.IsNullOrEmpty(pattern))
-                        sb.AppendLine($"  Pattern: {pattern}");
-
-                    if (rule.TryGetProperty("statusCodeMin", out var scMin) && scMin.ValueKind != JsonValueKind.Null)
-                        sb.AppendLine($"  Status Code Min: {scMin}");
-                    if (rule.TryGetProperty("statusCodeMax", out var scMax) && scMax.ValueKind != JsonValueKind.Null)
-                        sb.AppendLine($"  Status Code Max: {scMax}");
-                    if (rule.TryGetProperty("responseTimeThresholdMs", out var rt) && rt.ValueKind != JsonValueKind.Null)
-                        sb.AppendLine($"  Response Time Threshold: {rt}ms");
-                    if (rule.TryGetProperty("sizeThresholdBytes", out var st) && st.ValueKind != JsonValueKind.Null)
-                        sb.AppendLine($"  Size Threshold: {st} bytes");
-                    if (rule.TryGetProperty("playSound", out var ps))
-                        sb.AppendLine($"  Play Sound: {ps}");
-
+                    AppendRule(sb, rule);
                     sb.AppendLine();
                 }
 
@@ -98,10 +79,7 @@ public static class AlertTools
             var sb = new StringBuilder();
             sb.AppendLine("Alert rule created successfully.");
             sb.AppendLine();
-            sb.AppendLine($"  ID:      {GetString(result, "id")}");
-            sb.AppendLine($"  Name:    {GetString(result, "name")}");
-            sb.AppendLine($"  Type:    {GetString(result, "type")}");
-            sb.AppendLine($"  Enabled: {GetString(result, "isEnabled")}");
+            AppendRule(sb, result);
 
             return sb.ToString().TrimEnd();
         }
@@ -185,6 +163,30 @@ public static class AlertTools
         {
             return $"Error: {ex.Message}. Make sure HttpTrafficMonitor is running.";
         }
+    }
+
+    // The app answers a rule in the same shape in the rule list and after adding it
+    private static void AppendRule(StringBuilder sb, JsonElement rule)
+    {
+        sb.AppendLine($"  ID:      {GetString(rule, "id")}");
+        sb.AppendLine($"  Name:    {GetString(rule, "name")}");
+        sb.AppendLine($"  Type:    {GetString(rule, "type")}");
+        sb.AppendLine($"  Enabled: {GetString(rule, "isEnabled")}");
+
+        var pattern = GetString(rule, "pattern");
+        if (!string.IsNullOrEmpty(pattern))
+            sb.AppendLine($"  Pattern: {pattern}");
+
+        if (rule.TryGetProperty("statusCodeMin", out var scMin) && scMin.ValueKind != JsonValueKind.Null)
+            sb.AppendLine($"  Status Code Min: {scMin}");
+        if (rule.TryGetProperty("statusCodeMax", out var scMax) && scMax.ValueKind != JsonValueKind.Null)
+            sb.AppendLine($"  Status Code Max: {scMax}");
+        if (rule.TryGetProperty("responseTimeThresholdMs", out var rt) && rt.ValueKind != JsonValueKind.Null)
+            sb.AppendLine($"  Response Time Threshold: {rt}ms");
+        if (rule.TryGetProperty("sizeThresholdBytes", out var st) && st.ValueKind != JsonValueKind.Null)
+            sb.AppendLine($"  Size Threshold: {st} bytes");
+        if (rule.TryGetProperty("playSound", out var ps))
+            sb.AppendLine($"  Play Sound: {ps}");
     }
 
     private static string GetString(JsonElement element, string propertyName)
