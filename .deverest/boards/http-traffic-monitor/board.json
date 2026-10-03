@@ -1,0 +1,175 @@
+{
+  "Slug": "http-traffic-monitor",
+  "Name": "http-traffic-monitor",
+  "SlackListId": null,
+  "ColumnOrder": [
+    "New Cards",
+    "In Work",
+    "Done"
+  ],
+  "FieldConfig": [
+    {
+      "Key": "title",
+      "Label": null,
+      "Type": null,
+      "Options": null,
+      "Visible": null,
+      "Fill": "ask",
+      "Run": null,
+      "Shared": null,
+      "Multi": null
+    },
+    {
+      "Key": "description",
+      "Label": null,
+      "Type": null,
+      "Options": null,
+      "Visible": null,
+      "Fill": "ai",
+      "Run": true,
+      "Shared": null,
+      "Multi": null
+    },
+    {
+      "Key": "state",
+      "Label": null,
+      "Type": null,
+      "Options": null,
+      "Visible": null,
+      "Fill": null,
+      "Run": true,
+      "Shared": null,
+      "Multi": null
+    },
+    {
+      "Key": "category",
+      "Label": "Category",
+      "Type": "text",
+      "Options": [],
+      "Visible": true,
+      "Fill": "ai",
+      "Run": true,
+      "Shared": null,
+      "Multi": null
+    },
+    {
+      "Key": "epic",
+      "Label": "Epic",
+      "Type": "text",
+      "Options": [],
+      "Visible": true,
+      "Fill": "ai",
+      "Run": true,
+      "Shared": null,
+      "Multi": null
+    },
+    {
+      "Key": "hub",
+      "Label": "Hub",
+      "Type": "text",
+      "Options": [],
+      "Visible": true,
+      "Fill": "ai",
+      "Run": true,
+      "Shared": null,
+      "Multi": null
+    },
+    {
+      "Key": "dev",
+      "Label": "Dev",
+      "Type": "person",
+      "Options": [],
+      "Visible": true,
+      "Fill": "ai",
+      "Run": false,
+      "Shared": null,
+      "Multi": null
+    },
+    {
+      "Key": "tester",
+      "Label": "Tester",
+      "Type": "person",
+      "Options": [],
+      "Visible": true,
+      "Fill": "ai",
+      "Run": false,
+      "Shared": null,
+      "Multi": null
+    },
+    {
+      "Key": "releaseVersion",
+      "Label": "Release version",
+      "Type": "text",
+      "Options": [],
+      "Visible": true,
+      "Fill": "ai",
+      "Run": true,
+      "Shared": null,
+      "Multi": null
+    },
+    {
+      "Key": "createdBy",
+      "Label": "Created by",
+      "Type": "person",
+      "Options": [],
+      "Visible": true,
+      "Fill": "ai",
+      "Run": false,
+      "Shared": null,
+      "Multi": null
+    },
+    {
+      "Key": "implementedAt",
+      "Label": "Implementation date",
+      "Type": "date",
+      "Options": [],
+      "Visible": true,
+      "Fill": "skip",
+      "Run": true,
+      "Shared": null,
+      "Multi": null
+    },
+    {
+      "Key": "customers",
+      "Label": "Customers",
+      "Type": "checklist",
+      "Options": [],
+      "Visible": true,
+      "Fill": "skip",
+      "Run": false,
+      "Shared": null,
+      "Multi": null
+    },
+    {
+      "Key": "attachments",
+      "Label": "Attachments",
+      "Type": "files",
+      "Options": [],
+      "Visible": true,
+      "Fill": "ask",
+      "Run": true,
+      "Shared": null,
+      "Multi": null
+    },
+    {
+      "Key": "openIssues",
+      "Label": "Open issues",
+      "Type": "checklist",
+      "Options": [],
+      "Visible": true,
+      "Fill": "skip",
+      "Run": true,
+      "Shared": null,
+      "Multi": null
+    }
+  ],
+  "WorkingDirectory": "C:\\Projects\\httptrafficmonitor\\httptrafficmonitr",
+  "RunsDriveDesktop": false,
+  "DesktopApp": null,
+  "Kind": "Software",
+  "MainBranch": "main",
+  "CreatedAt": "2026-10-03T12:12:25.0116885+00:00",
+  "LastImportedAt": null,
+  "DeletedTitles": [],
+  "FieldConfigJson": "[{\"Key\":\"title\",\"Label\":null,\"Type\":null,\"Options\":null,\"Visible\":null,\"Fill\":\"ask\",\"Run\":null,\"Shared\":null,\"Multi\":null},{\"Key\":\"description\",\"Label\":null,\"Type\":null,\"Options\":null,\"Visible\":null,\"Fill\":\"ai\",\"Run\":true,\"Shared\":null,\"Multi\":null},{\"Key\":\"state\",\"Label\":null,\"Type\":null,\"Options\":null,\"Visible\":null,\"Fill\":null,\"Run\":true,\"Shared\":null,\"Multi\":null},{\"Key\":\"category\",\"Label\":\"Category\",\"Type\":\"text\",\"Options\":[],\"Visible\":true,\"Fill\":\"ai\",\"Run\":true,\"Shared\":null,\"Multi\":null},{\"Key\":\"epic\",\"Label\":\"Epic\",\"Type\":\"text\",\"Options\":[],\"Visible\":true,\"Fill\":\"ai\",\"Run\":true,\"Shared\":null,\"Multi\":null},{\"Key\":\"hub\",\"Label\":\"Hub\",\"Type\":\"text\",\"Options\":[],\"Visible\":true,\"Fill\":\"ai\",\"Run\":true,\"Shared\":null,\"Multi\":null},{\"Key\":\"dev\",\"Label\":\"Dev\",\"Type\":\"person\",\"Options\":[],\"Visible\":true,\"Fill\":\"ai\",\"Run\":false,\"Shared\":null,\"Multi\":null},{\"Key\":\"tester\",\"Label\":\"Tester\",\"Type\":\"person\",\"Options\":[],\"Visible\":true,\"Fill\":\"ai\",\"Run\":false,\"Shared\":null,\"Multi\":null},{\"Key\":\"releaseVersion\",\"Label\":\"Release version\",\"Type\":\"text\",\"Options\":[],\"Visible\":true,\"Fill\":\"ai\",\"Run\":true,\"Shared\":null,\"Multi\":null},{\"Key\":\"createdBy\",\"Label\":\"Created by\",\"Type\":\"person\",\"Options\":[],\"Visible\":true,\"Fill\":\"ai\",\"Run\":false,\"Shared\":null,\"Multi\":null},{\"Key\":\"implementedAt\",\"Label\":\"Implementation date\",\"Type\":\"date\",\"Options\":[],\"Visible\":true,\"Fill\":\"skip\",\"Run\":true,\"Shared\":null,\"Multi\":null},{\"Key\":\"customers\",\"Label\":\"Customers\",\"Type\":\"checklist\",\"Options\":[],\"Visible\":true,\"Fill\":\"skip\",\"Run\":false,\"Shared\":null,\"Multi\":null},{\"Key\":\"attachments\",\"Label\":\"Attachments\",\"Type\":\"files\",\"Options\":[],\"Visible\":true,\"Fill\":\"ask\",\"Run\":true,\"Shared\":null,\"Multi\":null},{\"Key\":\"openIssues\",\"Label\":\"Open issues\",\"Type\":\"checklist\",\"Options\":[],\"Visible\":true,\"Fill\":\"skip\",\"Run\":true,\"Shared\":null,\"Multi\":null}]"
+}
