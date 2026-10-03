@@ -173,7 +173,7 @@ public static class AutoResponderTools
             if (body.Count == 0)
                 return "No fields provided to update. Please specify at least one field to change.";
 
-            var result = await client.PutAsync($"/auto-responder/rules/{ruleId}", body);
+            var result = await client.PutAsync($"/auto-responder/rules/{Uri.EscapeDataString(ruleId)}", body);
 
             var sb = new StringBuilder();
             sb.AppendLine($"Auto-responder rule '{ruleId}' updated successfully.");
@@ -203,7 +203,7 @@ public static class AutoResponderTools
     {
         try
         {
-            await client.DeleteAsync($"/auto-responder/rules/{ruleId}");
+            await client.DeleteAsync($"/auto-responder/rules/{Uri.EscapeDataString(ruleId)}");
             return $"Auto-responder rule '{ruleId}' deleted successfully.";
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
