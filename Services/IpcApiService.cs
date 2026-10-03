@@ -638,11 +638,18 @@ namespace HttpTrafficMonitor.Services
         {
             var body = ReadBody<AlertRuleDto>(request);
 
+            // Only a type's name counts, in any letter case; Enum.TryParse alone would also take "7" or "StatusCode,Domain".
+            var typeName = Enum.GetNames<AlertRuleType>()
+                .FirstOrDefault(n => string.Equals(n, body.Type?.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (typeName == null)
+            {
+                WriteError(response, $"Unknown alert rule type: '{body.Type}'. Supported types: {string.Join(", ", Enum.GetNames<AlertRuleType>())}.");
+                return;
+            }
+            var ruleType = Enum.Parse<AlertRuleType>(typeName);
+
             var data = InvokeOnUI(() =>
             {
-                if (!Enum.TryParse<AlertRuleType>(body.Type, true, out var ruleType))
-                    ruleType = AlertRuleType.StatusCode;
-
                 var rule = new AlertRule
                 {
                     Name = body.Name ?? "Unnamed",

@@ -84,6 +84,10 @@ public static class AlertTools
 
             return sb.ToString().TrimEnd();
         }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.BadRequest)
+        {
+            return $"No alert rule was created: '{type}' is not an alert rule type. Supported types: StatusCode, ResponseTime, Domain, Process, RequestSize, ResponseSize.";
+        }
         catch (HttpRequestException ex)
         {
             return $"Error: {ex.Message}. Make sure HttpTrafficMonitor is running.";
