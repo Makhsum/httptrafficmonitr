@@ -38,6 +38,7 @@ namespace HttpTrafficMonitor.Models
         public double? TlsHandshakeMs { get; set; }
         public double? TimeToFirstByteMs { get; set; }
         public double? ContentDownloadMs { get; set; }
+        public TlsCertificateInfo? TlsInfo { get; set; }
         public bool IsBookmarked { get; set; }
         public string? BookmarkNotes { get; set; }
     }

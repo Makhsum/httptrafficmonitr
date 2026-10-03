@@ -86,6 +86,7 @@ namespace HttpTrafficMonitor.Services
                     TlsHandshakeMs = r.TlsHandshakeMs,
                     TimeToFirstByteMs = r.TimeToFirstByteMs,
                     ContentDownloadMs = r.ContentDownloadMs,
+                    TlsInfo = r.TlsInfo,
                     IsBookmarked = r.IsBookmarked,
                     BookmarkNotes = r.BookmarkNotes,
                 }).ToList(),
@@ -135,6 +136,7 @@ namespace HttpTrafficMonitor.Services
                     TlsHandshakeMs = r.TlsHandshakeMs,
                     TimeToFirstByteMs = r.TimeToFirstByteMs,
                     ContentDownloadMs = r.ContentDownloadMs,
+                    TlsInfo = r.TlsInfo,
                     IsBookmarked = r.IsBookmarked,
                     BookmarkNotes = r.BookmarkNotes,
                 };
