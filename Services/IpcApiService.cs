@@ -1012,7 +1012,7 @@ namespace HttpTrafficMonitor.Services
                 return;
             }
 
-            InvokeOnUI(() =>
+            int requestCount = InvokeOnUI(() =>
             {
                 var session = SessionService.LoadSession(body.FilePath!);
                 var entries = SessionService.RestoreRequests(session);
@@ -1050,9 +1050,10 @@ namespace HttpTrafficMonitor.Services
                 _vm.ExcludedProcessesText = session.Settings.ExcludedProcesses;
                 _vm.SslPassthroughDomainsText = session.Settings.SslPassthroughDomains ?? string.Empty;
                 _vm.StatusMessage = $"Loaded session: {entries.Count} requests from {session.SavedAt:g}";
+                return entries.Count;
             });
 
-            WriteJson(response, new { success = true });
+            WriteJson(response, new { success = true, requestCount });
         }
 
         private void HandleSessionRecent(HttpListenerResponse response)
