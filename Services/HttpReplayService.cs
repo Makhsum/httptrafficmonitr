@@ -99,6 +99,8 @@ namespace HttpTrafficMonitor.Services
                 if (colonIdx <= 0) continue;
 
                 string key = trimmed[..colonIdx].Trim();
+                // A header name has no space; a request line like "PATCH /a?t=10:30 HTTP/1.1" does
+                if (key.Contains(' ')) continue;
                 string value = trimmed[(colonIdx + 1)..].Trim();
                 dict[key] = value;
             }

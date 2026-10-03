@@ -56,5 +56,6 @@ None yet — no version has been tagged so far. Until the first release, build t
 - A HAR export carries every field HAR 1.2 requires (`cookies`, `redirectURL`, no empty `postData`), so stricter HAR viewers such as the perf-cascade waterfall open it instead of failing.
 - MCP server: `add_alert_rule` shows the new rule's name, type, enabled state, pattern and thresholds in its confirmation, as the app stored them; before, only the ID line was filled in.
 - A captured request lists its `Host` header once and its request line ends in `HTTP/1.1`, as the client sent it; before, `Host` appeared twice and the request line read `POST /posts 1.1`. This shows in the Request tab, the Compare window's Req Headers tab and MCP `get_request_details`.
+- curl, HAR and Postman exports no longer list a request line as a header: a `PATCH`, `OPTIONS` or `HEAD` request whose URL holds a colon, such as `?since=10:00`, was exported with a header named after its own request line.
 
 [Unreleased]: https://github.com/Makhsum/httptrafficmonitr/commits/main
