@@ -219,7 +219,6 @@ namespace HttpTrafficMonitor.Services
                     return;
                 }
 
-                int id = Interlocked.Increment(ref _requestCounter);
                 string requestBody = string.Empty;
 
                 // Detect WebSocket upgrade
@@ -259,7 +258,6 @@ namespace HttpTrafficMonitor.Services
 
                 var entry = new HttpRequestEntry
                 {
-                    Id = id,
                     Timestamp = DateTime.Now,
                     ProcessName = processName,
                     ProcessId = GetProcessId(e),
@@ -570,7 +568,6 @@ namespace HttpTrafficMonitor.Services
                 if (!_isPaused)
                 {
                     // Still log the CONNECT request with available metadata
-                    int id = Interlocked.Increment(ref _requestCounter);
                     string processName = "Unknown";
                     int processId = 0;
                     try
@@ -582,7 +579,6 @@ namespace HttpTrafficMonitor.Services
 
                     var entry = new HttpRequestEntry
                     {
-                        Id = id,
                         Timestamp = DateTime.Now,
                         ProcessName = processName,
                         ProcessId = processId,
@@ -712,6 +708,9 @@ namespace HttpTrafficMonitor.Services
             store.Open(OpenFlags.ReadOnly);
             return store.Certificates.Find(X509FindType.FindByThumbprint, certificate.Thumbprint, false).Count > 0;
         }
+
+        // A captured request is numbered when it reaches the grid, so a session loaded meanwhile cannot hand out its ID again.
+        public int NextRequestId() => Interlocked.Increment(ref _requestCounter);
 
         // A loaded session brings its own request IDs; the next captured request must be numbered past them.
         public void ContinueRequestIdsAfter(int lastId)

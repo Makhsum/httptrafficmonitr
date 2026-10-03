@@ -512,6 +512,7 @@ namespace HttpTrafficMonitor.ViewModels
         {
             Application.Current?.Dispatcher?.InvokeAsync(() =>
             {
+                entry.Id = _proxyService.NextRequestId();
                 lock (_collectionLock)
                 {
                     while (AllRequests.Count >= MaxRequests) AllRequests.RemoveAt(0);
