@@ -335,7 +335,8 @@
                                                Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}">
                                         <TextBlock.InputBindings>
                                             <MouseBinding MouseAction="LeftClick"
-                                                          Command="{Binding DataContext.ToggleBookmarkCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"/>
+                                                          Command="{Binding DataContext.ToggleBookmarkCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                          CommandParameter="{Binding}"/>
                                         </TextBlock.InputBindings>
                                     </TextBlock>
                                 </DataTemplate>

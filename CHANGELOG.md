@@ -38,5 +38,6 @@ None yet — no version has been tagged so far. Until the first release, build t
 - MCP server: WebSocket messages show their frame type, size and payload, and TLS details show the protocol when the app has it.
 - MCP server: `get_bookmarks` lists every request bookmarked in the app, with its notes, instead of `No bookmarked requests found.`; `toggle_bookmark` says whether the request is now bookmarked.
 - MCP server: `compare_requests` shows the changed lines of the request and response headers and bodies, the same diff as the app's Compare view, and its timing line (`A | B | Δ`).
+- The bookmark star in the request grid bookmarks the row it is clicked on; before, it toggled the row that was selected until then.
 
 [Unreleased]: https://github.com/Makhsum/httptrafficmonitr/commits/main

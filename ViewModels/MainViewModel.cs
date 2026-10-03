@@ -249,7 +249,7 @@ namespace HttpTrafficMonitor.ViewModels
             ReplayRequestCommand = new RelayCommand(_ => OpenReplayWindow(), _ => HasSelectedRequest);
             ComposeRequestCommand = new RelayCommand(_ => OpenReplayWindow(compose: true));
             CompareSelectedCommand = new RelayCommand(_ => OpenComparisonWindow(), _ => SelectedRequests.Count >= 2);
-            ToggleBookmarkCommand = new RelayCommand(_ => ToggleBookmark(), _ => HasSelectedRequest);
+            ToggleBookmarkCommand = new RelayCommand(entry => ToggleBookmark(entry as HttpRequestEntry ?? SelectedRequest), entry => entry is HttpRequestEntry || HasSelectedRequest);
             SaveSessionCommand = new RelayCommand(_ => ExecuteSaveSession(), _ => AllRequests.Count > 0);
             LoadSessionCommand = new RelayCommand(_ => ExecuteLoadSession());
             LoadRecentSessionCommand = new RelayCommand(path => { if (path is string p) LoadSessionFromFile(p); });
@@ -445,11 +445,11 @@ namespace HttpTrafficMonitor.ViewModels
             window.Show();
         }
 
-        // Bookmarks
-        private void ToggleBookmark()
+        // Bookmarks: the star of a row toggles that row, which is not selected yet when it is clicked
+        private void ToggleBookmark(HttpRequestEntry? entry)
         {
-            if (SelectedRequest == null) return;
-            SelectedRequest.IsBookmarked = !SelectedRequest.IsBookmarked;
+            if (entry == null) return;
+            entry.IsBookmarked = !entry.IsBookmarked;
         }
 
         // Advanced filter
