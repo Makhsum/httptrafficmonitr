@@ -41,6 +41,9 @@ namespace HttpTrafficMonitor.ViewModels
         // Process distribution pie
         public ObservableCollection<ISeries> ProcessPieSeries { get; } = new();
 
+        // Legend text of both pies; its color follows the theme, see ApplyTheme
+        public SolidColorPaint PieLegendTextPaint { get; } = new(SKColors.LightGray);
+
         // Response time histogram
         public ISeries[] HistogramSeries { get; private set; }
         public Axis[] HistogramXAxes { get; }
@@ -220,13 +223,12 @@ namespace HttpTrafficMonitor.ViewModels
             target.Clear();
             foreach (var (name, count) in data)
             {
+                // Labels on the slices pile up once a few small slices sit side by side,
+                // so the name and count go to the chart's legend instead.
                 target.Add(new PieSeries<long>
                 {
                     Values = new[] { count },
-                    Name = name,
-                    DataLabelsSize = 10,
-                    DataLabelsPaint = new SolidColorPaint(SKColors.White),
-                    DataLabelsFormatter = p => $"{name}: {count}"
+                    Name = $"{name}: {count}"
                 });
             }
         }
@@ -261,6 +263,11 @@ namespace HttpTrafficMonitor.ViewModels
             };
             HistogramXAxes[0].Labels = labels;
             OnPropertyChanged(nameof(HistogramSeries));
+        }
+
+        public void ApplyTheme(bool dark)
+        {
+            PieLegendTextPaint.Color = dark ? SKColors.LightGray : SKColors.DimGray;
         }
 
         public void Reset()

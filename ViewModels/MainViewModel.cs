@@ -162,7 +162,7 @@ namespace HttpTrafficMonitor.ViewModels
         public bool IsDarkTheme
         {
             get => _isDarkTheme;
-            set { if (SetProperty(ref _isDarkTheme, value)) { _themeService.SetTheme(value); } }
+            set { if (SetProperty(ref _isDarkTheme, value)) { _themeService.SetTheme(value); GraphsVm.ApplyTheme(value); } }
         }
         public bool IsAdvancedFilterActive { get => _isAdvancedFilterActive; set { if (SetProperty(ref _isAdvancedFilterActive, value)) FilteredRequests.Refresh(); } }
 
@@ -262,6 +262,7 @@ namespace HttpTrafficMonitor.ViewModels
 
             _themeService.Initialize();
             _isDarkTheme = _themeService.IsDarkTheme;
+            GraphsVm.ApplyTheme(_isDarkTheme);
         }
 
         private void ExecuteStart()

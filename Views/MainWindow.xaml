@@ -1008,7 +1008,10 @@
                                     <TextBlock Text="Top Domains" FontWeight="SemiBold" FontSize="11"
                                                Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
                                     <lvc:PieChart Height="120"
-                                                  Series="{Binding GraphsVm.DomainPieSeries}"/>
+                                                  Series="{Binding GraphsVm.DomainPieSeries}"
+                                                  LegendPosition="Right"
+                                                  LegendTextSize="10"
+                                                  LegendTextPaint="{Binding GraphsVm.PieLegendTextPaint}"/>
                                 </StackPanel>
                             </Border>
 
@@ -1020,7 +1023,10 @@
                                     <TextBlock Text="Top Processes" FontWeight="SemiBold" FontSize="11"
                                                Foreground="{DynamicResource TextFillColorSecondaryBrush}" Margin="0,0,0,4"/>
                                     <lvc:PieChart Height="120"
-                                                  Series="{Binding GraphsVm.ProcessPieSeries}"/>
+                                                  Series="{Binding GraphsVm.ProcessPieSeries}"
+                                                  LegendPosition="Right"
+                                                  LegendTextSize="10"
+                                                  LegendTextPaint="{Binding GraphsVm.PieLegendTextPaint}"/>
                                 </StackPanel>
                             </Border>
                         </Grid>
