@@ -291,15 +291,39 @@ namespace HttpTrafficMonitor.Services
 
         private void HandleProxyStart(HttpListenerResponse response)
         {
-            InvokeOnUI(() =>
+            var proxy = _vm.ProxyServiceInstance;
+            string? error = null;
+
+            // Not InvokeOnUI: a prompt to trust the root certificate holds the UI thread until the
+            // user answers it, so the caller is told about the prompt instead of waiting for it.
+            var start = Application.Current.Dispatcher.InvokeAsync(() =>
             {
-                _vm.ProxyServiceInstance.AutoResponderEnabled = _vm.AutoResponderVm.IsEnabled;
-                _vm.ProxyServiceInstance.Start();
-                _vm.IsMonitoring = true;
-                _vm.IsPaused = false;
-                _vm.StatusMessage = $"Monitoring traffic on port {ProxyService.ProxyPort}...";
+                if (proxy.IsAwaitingCertificateConfirmation) return;
+
+                try
+                {
+                    proxy.AutoResponderEnabled = _vm.AutoResponderVm.IsEnabled;
+                    proxy.Start();
+                    _vm.IsMonitoring = true;
+                    _vm.IsPaused = false;
+                    _vm.StatusMessage = $"Monitoring traffic on port {ProxyService.ProxyPort}...";
+                }
+                catch (Exception ex)
+                {
+                    error = ex.Message;
+                    _vm.IsMonitoring = false;
+                    _vm.StatusMessage = $"Failed to start monitoring: {ex.Message}";
+                }
             });
-            WriteJson(response, new { success = true });
+
+            while (!start.Task.Wait(TimeSpan.FromSeconds(1)) && !proxy.IsAwaitingCertificateConfirmation) { }
+
+            if (proxy.IsAwaitingCertificateConfirmation)
+                WriteJson(response, new { success = false, awaitingConfirmation = true, message = ProxyService.CertificateConfirmationMessage });
+            else if (error != null)
+                WriteError(response, error, 500);
+            else
+                WriteJson(response, new { success = true });
         }
 
         private void HandleProxyStop(HttpListenerResponse response)

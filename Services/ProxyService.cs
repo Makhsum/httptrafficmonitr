@@ -26,6 +26,7 @@ namespace HttpTrafficMonitor.Services
         private int _requestCounter;
         private bool _isRunning;
         private bool _isPaused;
+        private volatile bool _isAwaitingCertificateConfirmation;
         private readonly object _lock = new();
         private readonly Dictionary<int, string> _processNameCache = new();
         private DateTime _lastCacheClear = DateTime.UtcNow;
@@ -35,12 +36,16 @@ namespace HttpTrafficMonitor.Services
 
         public const int ProxyPort = 18080;
         public const int SlowRequestThresholdMs = 3000;
+        public const string CertificateConfirmationMessage =
+            "A confirmation is waiting on the desktop: Windows asks whether to trust the HttpTrafficMonitor root certificate. " +
+            "The proxy starts once it is answered.";
 
         public event Action<HttpRequestEntry>? RequestCaptured;
         public event Action<HttpRequestEntry>? ResponseUpdated;
         public event Action<string>? ErrorOccurred;
 
         public bool IsRunning => _isRunning;
+        public bool IsAwaitingCertificateConfirmation => _isAwaitingCertificateConfirmation;
         public bool IsPaused
         {
             get => _isPaused;
@@ -63,6 +68,11 @@ namespace HttpTrafficMonitor.Services
         {
             if (_isRunning) return;
 
+            // The Windows prompt to trust a new root certificate pumps the UI thread's messages,
+            // so another Start can run inside it; that one would open a second prompt.
+            if (_isAwaitingCertificateConfirmation)
+                throw new InvalidOperationException(CertificateConfirmationMessage);
+
             try
             {
                 _proxyServer = new ProxyServer();
@@ -71,8 +81,20 @@ namespace HttpTrafficMonitor.Services
                 _proxyServer.CertificateManager.RootCertificateName = "HttpTrafficMonitor Root Certificate";
                 _proxyServer.CertificateManager.SaveFakeCertificates = true;
 
-                _proxyServer.CertificateManager.EnsureRootCertificate();
-                _proxyServer.CertificateManager.TrustRootCertificate(true);
+                _proxyServer.CertificateManager.CreateRootCertificate();
+                _isAwaitingCertificateConfirmation = !IsTrustedRootCertificate(_proxyServer.CertificateManager.RootCertificate);
+                try
+                {
+                    _proxyServer.CertificateManager.EnsureRootCertificate();
+                    // Ask only once: Start and SetAsSystemHttpsProxy ensure the root certificate again
+                    // and would repeat the prompt after a "No".
+                    _proxyServer.CertificateManager.EnsureRootCertificate(userTrustRootCertificate: false, machineTrustRootCertificate: false);
+                    _proxyServer.CertificateManager.TrustRootCertificate(true);
+                }
+                finally
+                {
+                    _isAwaitingCertificateConfirmation = false;
+                }
 
                 _proxyServer.EnableConnectionPool = false;
 
@@ -495,6 +517,17 @@ namespace HttpTrafficMonitor.Services
             foreach (var header in response.Headers)
                 sb.AppendLine($"{header.Name}: {header.Value}");
             return sb.ToString().TrimEnd();
+        }
+
+        // CertificateManager.IsRootCertificateUserTrusted matches by name, so an older certificate
+        // with the same name would count; only this exact certificate makes the prompt unnecessary.
+        private static bool IsTrustedRootCertificate(X509Certificate2? certificate)
+        {
+            if (certificate == null) return false;
+
+            using var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
+            store.Open(OpenFlags.ReadOnly);
+            return store.Certificates.Find(X509FindType.FindByThumbprint, certificate.Thumbprint, false).Count > 0;
         }
 
         public void RemoveRootCertificate()

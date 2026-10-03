@@ -266,6 +266,12 @@ namespace HttpTrafficMonitor.ViewModels
 
         private void ExecuteStart()
         {
+            if (_proxyService.IsAwaitingCertificateConfirmation)
+            {
+                StatusMessage = ProxyService.CertificateConfirmationMessage;
+                return;
+            }
+
             try
             {
                 _proxyService.AutoResponderEnabled = AutoResponderVm.IsEnabled;

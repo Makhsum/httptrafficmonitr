@@ -40,7 +40,7 @@ public static class ProxyTools
         }
     }
 
-    [McpServerTool, Description("Start the HTTP proxy server to begin capturing traffic.")]
+    [McpServerTool, Description("Start the HTTP proxy server to begin capturing traffic. If Windows is asking on the desktop to trust the app's root certificate, this answers at once that a confirmation is waiting; do not call it again, ask the user to answer the prompt and then check get_proxy_status.")]
     public static async Task<string> start_proxy(IpcClient client)
     {
         try
