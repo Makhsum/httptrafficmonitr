@@ -278,7 +278,7 @@ namespace HttpTrafficMonitor.ViewModels
                 _proxyService.Start();
                 IsMonitoring = true;
                 IsPaused = false;
-                StatusMessage = $"Monitoring traffic on port {ProxyService.ProxyPort}...";
+                StatusMessage = _proxyService.MonitoringStatusMessage;
             }
             catch (Exception ex)
             {

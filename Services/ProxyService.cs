@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
@@ -27,6 +28,7 @@ namespace HttpTrafficMonitor.Services
         private bool _isRunning;
         private bool _isPaused;
         private volatile bool _isAwaitingCertificateConfirmation;
+        private bool _isRootCertificateTrusted;
         private readonly object _lock = new();
         private readonly Dictionary<int, string> _processNameCache = new();
         private DateTime _lastCacheClear = DateTime.UtcNow;
@@ -41,6 +43,9 @@ namespace HttpTrafficMonitor.Services
             "The proxy starts once it is answered.";
         public const string StoppedDuringConfirmationMessage =
             "The proxy was stopped while the root certificate confirmation was waiting, so it was not started.";
+        public const string RootCertificateNotTrustedMessage =
+            "Monitoring HTTP traffic only: Windows does not trust the HttpTrafficMonitor root certificate, so HTTPS traffic cannot be decrypted. " +
+            "Click Stop, then Start, and answer Yes when Windows asks to install the certificate.";
 
         public event Action<HttpRequestEntry>? RequestCaptured;
         public event Action<HttpRequestEntry>? ResponseUpdated;
@@ -48,6 +53,9 @@ namespace HttpTrafficMonitor.Services
 
         public bool IsRunning => _isRunning;
         public bool IsAwaitingCertificateConfirmation => _isAwaitingCertificateConfirmation;
+        public string MonitoringStatusMessage => _isRootCertificateTrusted
+            ? $"Monitoring traffic on port {ProxyPort}..."
+            : RootCertificateNotTrustedMessage;
         public bool IsPaused
         {
             get => _isPaused;
@@ -99,6 +107,9 @@ namespace HttpTrafficMonitor.Services
                     _isAwaitingCertificateConfirmation = false;
                 }
 
+                // A refused prompt is reported by Titanium only to its default handler, so check the result instead.
+                _isRootCertificateTrusted = IsTrustedRootCertificate(proxyServer.CertificateManager.RootCertificate);
+
                 // Stop can run inside the prompt as well; it has already dropped this start's server.
                 if (_proxyServer != proxyServer)
                     throw new InvalidOperationException(StoppedDuringConfirmationMessage);
@@ -121,12 +132,32 @@ namespace HttpTrafficMonitor.Services
 
                 _isRunning = true;
             }
+            catch (Exception ex) when (IsPortInUse(ex))
+            {
+                // Titanium only says that the endpoint failed to start; the cause is on the inner exception.
+                // It binds with ReuseAddress, so a port held by another program fails with AccessDenied.
+                var portInUse = new InvalidOperationException(
+                    $"Port {ProxyPort} is already in use or reserved by another program. Close that program, or the other running HttpTrafficMonitor, and click Start again.", ex);
+                ErrorOccurred?.Invoke($"Failed to start proxy: {portInUse.Message}");
+                Stop();
+                throw portInUse;
+            }
             catch (Exception ex)
             {
                 ErrorOccurred?.Invoke($"Failed to start proxy: {ex.Message}");
                 Stop();
                 throw;
             }
+        }
+
+        private static bool IsPortInUse(Exception ex)
+        {
+            for (Exception? e = ex; e != null; e = e.InnerException)
+            {
+                if (e is SocketException { SocketErrorCode: SocketError.AddressAlreadyInUse or SocketError.AccessDenied })
+                    return true;
+            }
+            return false;
         }
 
         public void Stop()
@@ -490,8 +521,21 @@ namespace HttpTrafficMonitor.Services
 
         private void OnProxyException(Exception ex)
         {
-            if (ex is ObjectDisposedException) return;
+            if (IsDroppedConnection(ex)) return;
             ErrorOccurred?.Invoke($"Proxy error: {ex.Message}");
+        }
+
+        // Titanium reports every connection that a client closes or a server refuses, wrapped as
+        // "Connection was aborted" or "Error occured whilst handling session request"; that is
+        // routine traffic, not a failure of the proxy.
+        private static bool IsDroppedConnection(Exception ex)
+        {
+            for (Exception? e = ex; e != null; e = e.InnerException)
+            {
+                if (e is ObjectDisposedException || e is OperationCanceledException || e is IOException || e is SocketException)
+                    return true;
+            }
+            return false;
         }
 
         private int GetProcessId(SessionEventArgs e)

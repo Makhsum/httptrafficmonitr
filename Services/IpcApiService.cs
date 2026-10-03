@@ -306,7 +306,7 @@ namespace HttpTrafficMonitor.Services
                     proxy.Start();
                     _vm.IsMonitoring = true;
                     _vm.IsPaused = false;
-                    _vm.StatusMessage = $"Monitoring traffic on port {ProxyService.ProxyPort}...";
+                    _vm.StatusMessage = proxy.MonitoringStatusMessage;
                 }
                 catch (Exception ex)
                 {
