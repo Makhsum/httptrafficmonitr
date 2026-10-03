@@ -65,6 +65,7 @@ namespace HttpTrafficMonitor.Services
                 {
                     Id = r.Id,
                     Timestamp = r.Timestamp,
+                    ResponseTime = r.ResponseTime,
                     ProcessName = r.ProcessName,
                     ProcessId = r.ProcessId,
                     Method = r.Method,
@@ -113,6 +114,7 @@ namespace HttpTrafficMonitor.Services
                 {
                     Id = r.Id,
                     Timestamp = r.Timestamp,
+                    ResponseTime = r.ResponseTime,
                     ProcessName = r.ProcessName,
                     ProcessId = r.ProcessId,
                     Method = r.Method,

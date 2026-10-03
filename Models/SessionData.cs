@@ -17,6 +17,7 @@ namespace HttpTrafficMonitor.Models
     {
         public int Id { get; set; }
         public DateTime Timestamp { get; set; }
+        public DateTime? ResponseTime { get; set; }
         public string ProcessName { get; set; } = string.Empty;
         public int ProcessId { get; set; }
         public string Method { get; set; } = string.Empty;
