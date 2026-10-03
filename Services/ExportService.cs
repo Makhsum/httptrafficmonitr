@@ -118,10 +118,26 @@ namespace HttpTrafficMonitor.Services
                         .Select(h => new { name = h.Key, value = h.Value }).ToArray()
                     : Array.Empty<object>();
 
+                // HAR marks a phase that was not measured with -1 and counts the TLS handshake inside connect
+                double dns = e.DnsLookupMs ?? -1;
+                double ssl = e.TlsHandshakeMs ?? -1;
+                double connect = e.TcpConnectMs == null && e.TlsHandshakeMs == null
+                    ? -1 : (e.TcpConnectMs ?? 0) + (e.TlsHandshakeMs ?? 0);
+
+                // send, wait and receive may not be -1; without a breakdown the whole duration stays in wait
+                bool hasBreakdown = e.TimeToFirstByteMs != null;
+                double wait = e.TimeToFirstByteMs ?? e.Duration?.TotalMilliseconds ?? 0;
+                double receive = e.ContentDownloadMs ?? 0;
+
+                // time is the sum of the timings that were measured
+                double time = hasBreakdown
+                    ? Math.Max(dns, 0) + Math.Max(connect, 0) + wait + receive
+                    : e.Duration?.TotalMilliseconds ?? 0;
+
                 return new
                 {
                     startedDateTime = e.Timestamp.ToString("O"),
-                    time = e.Duration?.TotalMilliseconds ?? 0,
+                    time,
                     request = new
                     {
                         method = e.Method,
@@ -155,9 +171,13 @@ namespace HttpTrafficMonitor.Services
                     cache = new { },
                     timings = new
                     {
+                        blocked = -1,
+                        dns,
+                        connect,
                         send = 0,
-                        wait = e.Duration?.TotalMilliseconds ?? 0,
-                        receive = 0
+                        wait,
+                        receive,
+                        ssl
                     }
                 };
             }).ToArray();
