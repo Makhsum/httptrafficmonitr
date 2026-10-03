@@ -303,12 +303,20 @@ namespace HttpTrafficMonitor.ViewModels
         private void ExecuteClear()
         {
             lock (_collectionLock) { AllRequests.Clear(); }
-            ProcessFilterOptions.Clear(); ProcessFilterOptions.Add("All Processes");
-            DomainFilterOptions.Clear(); DomainFilterOptions.Add("All Domains");
+            ResetFilterOptions(ProcessFilterOptions, _selectedProcessFilter);
+            ResetFilterOptions(DomainFilterOptions, _selectedDomainFilter);
             TotalRequests = 0; GetCount = 0; PostCount = 0; PutCount = 0; DeleteCount = 0; ErrorCount = 0;
             TotalDataTransferred = 0; SelectedRequest = null;
             GraphsVm.Reset();
             StatusMessage = IsMonitoring ? "Logs cleared. Still monitoring..." : "Logs cleared.";
+        }
+
+        // Keeps the "All ..." entry and the selected one: a combobox whose selected item leaves the list
+        // writes null back into the filter, and a null filter hides every new request
+        private static void ResetFilterOptions(ObservableCollection<string> options, string selected)
+        {
+            for (int i = options.Count - 1; i > 0; i--)
+                if (options[i] != selected) options.RemoveAt(i);
         }
 
         private void ExecuteExport()
