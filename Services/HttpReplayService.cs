@@ -86,7 +86,16 @@ namespace HttpTrafficMonitor.Services
         public static Dictionary<string, string> ParseHeaders(string headersText)
         {
             var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            if (string.IsNullOrWhiteSpace(headersText)) return dict;
+            foreach (var (key, value) in ParseHeaderList(headersText))
+                dict[key] = value;
+            return dict;
+        }
+
+        // Every header line in the order it was sent; a header sent twice stays twice
+        public static List<KeyValuePair<string, string>> ParseHeaderList(string headersText)
+        {
+            var list = new List<KeyValuePair<string, string>>();
+            if (string.IsNullOrWhiteSpace(headersText)) return list;
 
             foreach (string line in headersText.Split('\n', StringSplitOptions.RemoveEmptyEntries))
             {
@@ -102,9 +111,9 @@ namespace HttpTrafficMonitor.Services
                 // A header name has no space; a request line like "PATCH /a?t=10:30 HTTP/1.1" does
                 if (key.Contains(' ')) continue;
                 string value = trimmed[(colonIdx + 1)..].Trim();
-                dict[key] = value;
+                list.Add(new KeyValuePair<string, string>(key, value));
             }
-            return dict;
+            return list;
         }
 
         public void Dispose()

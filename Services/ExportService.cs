@@ -18,7 +18,7 @@ namespace HttpTrafficMonitor.Services
                 ? $"curl -I {ShellQuote(entry.Url)}"
                 : $"curl -X {entry.Method} {ShellQuote(entry.Url)}");
 
-            var headers = HttpReplayService.ParseHeaders(entry.RequestHeaders);
+            var headers = HttpReplayService.ParseHeaderList(entry.RequestHeaders);
             foreach (var (key, value) in headers)
             {
                 if (key.Equals("Host", StringComparison.OrdinalIgnoreCase)) continue;
@@ -28,7 +28,7 @@ namespace HttpTrafficMonitor.Services
             }
 
             // Without --compressed curl prints a gzip/deflate/br response as raw bytes
-            if (headers.ContainsKey("Accept-Encoding"))
+            if (headers.Any(h => h.Key.Equals("Accept-Encoding", StringComparison.OrdinalIgnoreCase)))
                 sb.Append(" \\\n  --compressed");
 
             if (!string.IsNullOrEmpty(entry.RequestBody) && entry.Method != "GET" && entry.Method != "HEAD")
@@ -55,7 +55,7 @@ namespace HttpTrafficMonitor.Services
         {
             var items = entries.Select(e =>
             {
-                var headers = HttpReplayService.ParseHeaders(e.RequestHeaders);
+                var headers = HttpReplayService.ParseHeaderList(e.RequestHeaders);
                 var headerArray = headers.Select(h => new { key = h.Key, value = h.Value }).ToArray();
 
                 Uri uri;
@@ -110,7 +110,7 @@ namespace HttpTrafficMonitor.Services
         {
             var entriesList = entries.Select(e =>
             {
-                var reqHeaders = HttpReplayService.ParseHeaders(e.RequestHeaders)
+                var reqHeaders = HttpReplayService.ParseHeaderList(e.RequestHeaders)
                     .Select(h => new { name = h.Key, value = h.Value }).ToArray();
 
                 var respHeaderDict = HttpReplayService.ParseHeaders(e.ResponseHeaders ?? "");
