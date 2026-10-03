@@ -39,6 +39,8 @@ namespace HttpTrafficMonitor.Services
         public const string CertificateConfirmationMessage =
             "A confirmation is waiting on the desktop: Windows asks whether to trust the HttpTrafficMonitor root certificate. " +
             "The proxy starts once it is answered.";
+        public const string StoppedDuringConfirmationMessage =
+            "The proxy was stopped while the root certificate confirmation was waiting, so it was not started.";
 
         public event Action<HttpRequestEntry>? RequestCaptured;
         public event Action<HttpRequestEntry>? ResponseUpdated;
@@ -75,7 +77,8 @@ namespace HttpTrafficMonitor.Services
 
             try
             {
-                _proxyServer = new ProxyServer();
+                var proxyServer = new ProxyServer();
+                _proxyServer = proxyServer;
 
                 _proxyServer.CertificateManager.RootCertificateIssuerName = "HttpTrafficMonitor CA";
                 _proxyServer.CertificateManager.RootCertificateName = "HttpTrafficMonitor Root Certificate";
@@ -85,16 +88,20 @@ namespace HttpTrafficMonitor.Services
                 _isAwaitingCertificateConfirmation = !IsTrustedRootCertificate(_proxyServer.CertificateManager.RootCertificate);
                 try
                 {
-                    _proxyServer.CertificateManager.EnsureRootCertificate();
+                    proxyServer.CertificateManager.EnsureRootCertificate();
                     // Ask only once: Start and SetAsSystemHttpsProxy ensure the root certificate again
                     // and would repeat the prompt after a "No".
-                    _proxyServer.CertificateManager.EnsureRootCertificate(userTrustRootCertificate: false, machineTrustRootCertificate: false);
-                    _proxyServer.CertificateManager.TrustRootCertificate(true);
+                    proxyServer.CertificateManager.EnsureRootCertificate(userTrustRootCertificate: false, machineTrustRootCertificate: false);
+                    proxyServer.CertificateManager.TrustRootCertificate(true);
                 }
                 finally
                 {
                     _isAwaitingCertificateConfirmation = false;
                 }
+
+                // Stop can run inside the prompt as well; it has already dropped this start's server.
+                if (_proxyServer != proxyServer)
+                    throw new InvalidOperationException(StoppedDuringConfirmationMessage);
 
                 _proxyServer.EnableConnectionPool = false;
 
