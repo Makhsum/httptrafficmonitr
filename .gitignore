@@ -9,3 +9,6 @@ crts/
 runtimes/
 *.py
 nul
+publish/
+dist/
+release-notes.md
