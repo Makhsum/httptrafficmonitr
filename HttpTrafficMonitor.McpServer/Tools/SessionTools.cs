@@ -1,5 +1,6 @@
 using ModelContextProtocol.Server;
 using System.ComponentModel;
+using System.Net;
 using System.Text.Json;
 
 namespace HttpTrafficMonitor.McpServer.Tools;
@@ -38,6 +39,14 @@ public static class SessionTools
                 : 0;
 
             return $"Session loaded successfully from: {filePath}\nRequests loaded: {requestCount}";
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            return $"Session file not found: {filePath}";
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
+        {
+            return $"'{filePath}' could not be read as a session. Load a .hts file saved by HttpTrafficMonitor.";
         }
         catch (HttpRequestException ex)
         {

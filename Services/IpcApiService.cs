@@ -998,9 +998,26 @@ namespace HttpTrafficMonitor.Services
                 return;
             }
 
+            if (!File.Exists(body.FilePath))
+            {
+                WriteError(response, $"Session file not found: {body.FilePath}", 404);
+                return;
+            }
+
+            // Read the file before touching the grid, so a file that is not a session leaves it as it was.
+            SessionData session;
+            try
+            {
+                session = SessionService.LoadSession(body.FilePath!);
+            }
+            catch (Exception ex) when (ex is InvalidDataException || ex is Newtonsoft.Json.JsonException)
+            {
+                WriteError(response, $"Not a valid session file: {body.FilePath} ({ex.Message})", 422);
+                return;
+            }
+
             int requestCount = InvokeOnUI(() =>
             {
-                var session = SessionService.LoadSession(body.FilePath!);
                 var entries = SessionService.RestoreRequests(session);
 
                 lock (_vm.CollectionLock) { _vm.AllRequests.Clear(); }
