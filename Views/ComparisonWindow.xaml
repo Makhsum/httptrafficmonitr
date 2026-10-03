@@ -81,6 +81,9 @@
                 BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
                 BorderThickness="1" CornerRadius="4">
             <ListView ItemsSource="{Binding DiffLines}"
+                      AutomationProperties.AutomationId="Comparison.DiffList"
+                      Background="Transparent"
+                      Foreground="{DynamicResource TextFillColorPrimaryBrush}"
                       BorderThickness="0" FontFamily="Cascadia Code,Consolas" FontSize="12"
                       VirtualizingPanel.IsVirtualizing="True"
                       VirtualizingPanel.VirtualizationMode="Recycling"
