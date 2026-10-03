@@ -713,6 +713,16 @@ namespace HttpTrafficMonitor.Services
             return store.Certificates.Find(X509FindType.FindByThumbprint, certificate.Thumbprint, false).Count > 0;
         }
 
+        // A loaded session brings its own request IDs; the next captured request must be numbered past them.
+        public void ContinueRequestIdsAfter(int lastId)
+        {
+            int current;
+            while ((current = _requestCounter) < lastId
+                   && Interlocked.CompareExchange(ref _requestCounter, lastId, current) != current)
+            {
+            }
+        }
+
         public void RemoveRootCertificate()
         {
             try { _proxyServer?.CertificateManager.RemoveTrustedRootCertificate(); }

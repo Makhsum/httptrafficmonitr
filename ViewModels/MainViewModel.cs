@@ -417,6 +417,7 @@ namespace HttpTrafficMonitor.ViewModels
                 {
                     foreach (var e in entries) AllRequests.Add(e);
                 }
+                _proxyService.ContinueRequestIdsAfter(entries.Count > 0 ? entries.Max(e => e.Id) : 0);
                 TotalRequests = entries.Count;
                 foreach (var e in entries)
                 {

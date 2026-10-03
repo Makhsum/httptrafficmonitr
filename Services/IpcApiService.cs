@@ -1040,6 +1040,7 @@ namespace HttpTrafficMonitor.Services
                 {
                     foreach (var e in entries) _vm.AllRequests.Add(e);
                 }
+                _vm.ProxyServiceInstance.ContinueRequestIdsAfter(entries.Count > 0 ? entries.Max(e => e.Id) : 0);
                 _vm.TotalRequests = entries.Count;
                 foreach (var e in entries)
                 {
