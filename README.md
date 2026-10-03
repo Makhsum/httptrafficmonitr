@@ -47,7 +47,7 @@ Choose this tool when you are on Windows and want a free graphical inspector tha
 - Start/Stop system-wide HTTP/HTTPS capture with one click (installs a root CA for TLS interception, restored automatically on Stop)
 - Live request grid: method, URL, status, size, duration, colored badges, and a red highlight for slow requests
 - Quick search plus dedicated Process / Domain / Method / Status filters
-- Per-request detail tabs: **Request**, **Response**, **Timing** (DNS/TCP/TLS/TTFB/download breakdown), **Certificate** (chain, issuer, validity, thumbprint), **Decoded** (gzip/brotli/base64 aware), and **Exclusions**
+- Per-request detail tabs: **Request**, **Response**, **Timing** (DNS lookup, TCP connect, TLS handshake, time to first byte and download, measured for each request), **Certificate** (chain, issuer, validity, thumbprint), **Decoded** (gzip/brotli/base64 aware), and **Exclusions**
 
 ![Filtered request with Request tab](docs/screenshots/03-request-detail.png)
 ![Timing breakdown](docs/screenshots/04-timing-tab.png)

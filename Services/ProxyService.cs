@@ -115,6 +115,9 @@ namespace HttpTrafficMonitor.Services
                     throw new InvalidOperationException(StoppedDuringConfirmationMessage);
 
                 _proxyServer.EnableConnectionPool = false;
+                // A prefetched server connection is opened for the CONNECT, so its DNS, TCP and TLS
+                // steps would be missing from the request's timing breakdown.
+                _proxyServer.EnableTcpServerConnectionPrefetch = false;
 
                 _proxyServer.BeforeRequest += OnBeforeRequest;
                 _proxyServer.BeforeResponse += OnBeforeResponse;
@@ -325,6 +328,12 @@ namespace HttpTrafficMonitor.Services
                     }
                 }
 
+                SetTimingBreakdown(entry, e, DateTime.UtcNow);
+
+                // The server certificate of a new connection is only known once the request has been sent.
+                if (entry.TlsInfo == null && e.HttpClient.Request.IsHttps && _tlsCertCache.TryGetValue(entry.Host, out var tlsInfo))
+                    entry.TlsInfo = tlsInfo;
+
                 entry.IsComplete = true;
                 ResponseUpdated?.Invoke(entry);
             }
@@ -333,6 +342,42 @@ namespace HttpTrafficMonitor.Services
                 ErrorOccurred?.Invoke($"Error capturing response: {ex.Message}");
             }
         }
+
+        // Titanium stamps each step of a session in UTC; the phases are the gaps between those stamps.
+        private static void SetTimingBreakdown(HttpRequestEntry entry, SessionEventArgs e, DateTime responseReadUtc)
+        {
+            var timeLine = e.TimeLine;
+            bool isHttps = e.HttpClient.Request.IsHttps;
+
+            if (timeLine.TryGetValue("Connection Established", out var connected))
+            {
+                if (timeLine.TryGetValue("Dns Resolved", out var dnsResolved))
+                {
+                    entry.DnsLookupMs = ElapsedMs(entry.Timestamp.ToUniversalTime(), dnsResolved);
+                    entry.TcpConnectMs = ElapsedMs(dnsResolved, connected);
+                }
+                if (isHttps && timeLine.TryGetValue("HTTPS Established", out var tlsEstablished))
+                    entry.TlsHandshakeMs = ElapsedMs(connected, tlsEstablished);
+            }
+            else if (timeLine.ContainsKey("Connection Ready"))
+            {
+                // A kept-alive server connection was reused: no lookup, connect or handshake for this request.
+                entry.DnsLookupMs = 0;
+                entry.TcpConnectMs = 0;
+                if (isHttps)
+                    entry.TlsHandshakeMs = 0;
+            }
+
+            if (timeLine.TryGetValue("Request Sent", out var requestSent)
+                && timeLine.TryGetValue("Response Received", out var responseReceived))
+            {
+                entry.TimeToFirstByteMs = ElapsedMs(requestSent, responseReceived);
+                entry.ContentDownloadMs = ElapsedMs(responseReceived, responseReadUtc);
+            }
+        }
+
+        private static double ElapsedMs(DateTime fromUtc, DateTime toUtc)
+            => Math.Max(0, (toUtc - fromUtc).TotalMilliseconds);
 
         private Task OnServerCertificateValidation(object sender, CertificateValidationEventArgs e)
         {

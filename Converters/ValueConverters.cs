@@ -118,4 +118,31 @@ namespace HttpTrafficMonitor.Converters
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
             => throw new NotImplementedException();
     }
+
+    public class NullableMillisecondsConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is not double ms) return "n/a";
+            return $"{ms:F0} ms";
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            => throw new NotImplementedException();
+    }
+
+    // values: phase ms, total ms of all phases, width of the track the bar is drawn in
+    public class TimingBarWidthConverter : IMultiValueConverter
+    {
+        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (values.Length < 3 || values[0] is not double phaseMs || values[1] is not double totalMs
+                || values[2] is not double trackWidth || totalMs <= 0)
+                return 0.0;
+            return Math.Min(trackWidth, trackWidth * phaseMs / totalMs);
+        }
+
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+            => throw new NotImplementedException();
+    }
 }

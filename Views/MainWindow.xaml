@@ -591,13 +591,21 @@
                                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="11"/>
                                                 <TextBlock HorizontalAlignment="Right"
                                                            Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontSize="11"
-                                                           Text="{Binding SelectedRequest.DnsLookupMs, Converter={StaticResource NullableToDash}, StringFormat='{}{0:F0} ms'}"/>
+                                                           Text="{Binding SelectedRequest.DnsLookupMs, Converter={StaticResource NullableMilliseconds}}"
+                                                           AutomationProperties.AutomationId="Timing.DnsLookupValue"/>
                                             </DockPanel>
                                             <Border Height="6" CornerRadius="3" Margin="0,2,0,0"
                                                     Background="{DynamicResource SubtleFillColorSecondaryBrush}">
                                                 <Border CornerRadius="3" HorizontalAlignment="Left"
-                                                        Background="#FF0078D4"
-                                                        Width="{Binding SelectedRequest.DnsLookupMs, FallbackValue=0}"/>
+                                                        Background="#FF0078D4">
+                                                    <Border.Width>
+                                                        <MultiBinding Converter="{StaticResource TimingBarWidth}">
+                                                            <Binding Path="SelectedRequest.DnsLookupMs"/>
+                                                            <Binding Path="SelectedRequest.TimingTotalMs"/>
+                                                            <Binding Path="ActualWidth" RelativeSource="{RelativeSource AncestorType=Border}"/>
+                                                        </MultiBinding>
+                                                    </Border.Width>
+                                                </Border>
                                             </Border>
                                         </StackPanel>
 
@@ -608,13 +616,21 @@
                                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="11"/>
                                                 <TextBlock HorizontalAlignment="Right"
                                                            Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontSize="11"
-                                                           Text="{Binding SelectedRequest.TcpConnectMs, Converter={StaticResource NullableToDash}, StringFormat='{}{0:F0} ms'}"/>
+                                                           Text="{Binding SelectedRequest.TcpConnectMs, Converter={StaticResource NullableMilliseconds}}"
+                                                           AutomationProperties.AutomationId="Timing.TcpConnectValue"/>
                                             </DockPanel>
                                             <Border Height="6" CornerRadius="3" Margin="0,2,0,0"
                                                     Background="{DynamicResource SubtleFillColorSecondaryBrush}">
                                                 <Border CornerRadius="3" HorizontalAlignment="Left"
-                                                        Background="#FF107C10"
-                                                        Width="{Binding SelectedRequest.TcpConnectMs, FallbackValue=0}"/>
+                                                        Background="#FF107C10">
+                                                    <Border.Width>
+                                                        <MultiBinding Converter="{StaticResource TimingBarWidth}">
+                                                            <Binding Path="SelectedRequest.TcpConnectMs"/>
+                                                            <Binding Path="SelectedRequest.TimingTotalMs"/>
+                                                            <Binding Path="ActualWidth" RelativeSource="{RelativeSource AncestorType=Border}"/>
+                                                        </MultiBinding>
+                                                    </Border.Width>
+                                                </Border>
                                             </Border>
                                         </StackPanel>
 
@@ -625,13 +641,21 @@
                                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="11"/>
                                                 <TextBlock HorizontalAlignment="Right"
                                                            Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontSize="11"
-                                                           Text="{Binding SelectedRequest.TlsHandshakeMs, Converter={StaticResource NullableToDash}, StringFormat='{}{0:F0} ms'}"/>
+                                                           Text="{Binding SelectedRequest.TlsHandshakeMs, Converter={StaticResource NullableMilliseconds}}"
+                                                           AutomationProperties.AutomationId="Timing.TlsHandshakeValue"/>
                                             </DockPanel>
                                             <Border Height="6" CornerRadius="3" Margin="0,2,0,0"
                                                     Background="{DynamicResource SubtleFillColorSecondaryBrush}">
                                                 <Border CornerRadius="3" HorizontalAlignment="Left"
-                                                        Background="#FF6B45BA"
-                                                        Width="{Binding SelectedRequest.TlsHandshakeMs, FallbackValue=0}"/>
+                                                        Background="#FF6B45BA">
+                                                    <Border.Width>
+                                                        <MultiBinding Converter="{StaticResource TimingBarWidth}">
+                                                            <Binding Path="SelectedRequest.TlsHandshakeMs"/>
+                                                            <Binding Path="SelectedRequest.TimingTotalMs"/>
+                                                            <Binding Path="ActualWidth" RelativeSource="{RelativeSource AncestorType=Border}"/>
+                                                        </MultiBinding>
+                                                    </Border.Width>
+                                                </Border>
                                             </Border>
                                         </StackPanel>
 
@@ -642,13 +666,21 @@
                                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="11"/>
                                                 <TextBlock HorizontalAlignment="Right"
                                                            Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontSize="11"
-                                                           Text="{Binding SelectedRequest.TimeToFirstByteMs, Converter={StaticResource NullableToDash}, StringFormat='{}{0:F0} ms'}"/>
+                                                           Text="{Binding SelectedRequest.TimeToFirstByteMs, Converter={StaticResource NullableMilliseconds}}"
+                                                           AutomationProperties.AutomationId="Timing.TimeToFirstByteValue"/>
                                             </DockPanel>
                                             <Border Height="6" CornerRadius="3" Margin="0,2,0,0"
                                                     Background="{DynamicResource SubtleFillColorSecondaryBrush}">
                                                 <Border CornerRadius="3" HorizontalAlignment="Left"
-                                                        Background="#FF9D5D00"
-                                                        Width="{Binding SelectedRequest.TimeToFirstByteMs, FallbackValue=0}"/>
+                                                        Background="#FF9D5D00">
+                                                    <Border.Width>
+                                                        <MultiBinding Converter="{StaticResource TimingBarWidth}">
+                                                            <Binding Path="SelectedRequest.TimeToFirstByteMs"/>
+                                                            <Binding Path="SelectedRequest.TimingTotalMs"/>
+                                                            <Binding Path="ActualWidth" RelativeSource="{RelativeSource AncestorType=Border}"/>
+                                                        </MultiBinding>
+                                                    </Border.Width>
+                                                </Border>
                                             </Border>
                                         </StackPanel>
 
@@ -659,15 +691,27 @@
                                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}" FontSize="11"/>
                                                 <TextBlock HorizontalAlignment="Right"
                                                            Foreground="{DynamicResource TextFillColorPrimaryBrush}" FontSize="11"
-                                                           Text="{Binding SelectedRequest.ContentDownloadMs, Converter={StaticResource NullableToDash}, StringFormat='{}{0:F0} ms'}"/>
+                                                           Text="{Binding SelectedRequest.ContentDownloadMs, Converter={StaticResource NullableMilliseconds}}"
+                                                           AutomationProperties.AutomationId="Timing.ContentDownloadValue"/>
                                             </DockPanel>
                                             <Border Height="6" CornerRadius="3" Margin="0,2,0,0"
                                                     Background="{DynamicResource SubtleFillColorSecondaryBrush}">
                                                 <Border CornerRadius="3" HorizontalAlignment="Left"
-                                                        Background="#FF00859B"
-                                                        Width="{Binding SelectedRequest.ContentDownloadMs, FallbackValue=0}"/>
+                                                        Background="#FF00859B">
+                                                    <Border.Width>
+                                                        <MultiBinding Converter="{StaticResource TimingBarWidth}">
+                                                            <Binding Path="SelectedRequest.ContentDownloadMs"/>
+                                                            <Binding Path="SelectedRequest.TimingTotalMs"/>
+                                                            <Binding Path="ActualWidth" RelativeSource="{RelativeSource AncestorType=Border}"/>
+                                                        </MultiBinding>
+                                                    </Border.Width>
+                                                </Border>
                                             </Border>
                                         </StackPanel>
+
+                                        <TextBlock Text="n/a: not measured for this request. Plain HTTP has no TLS handshake; mocked, SSL passthrough and loaded requests have no breakdown."
+                                                   TextWrapping="Wrap" FontSize="11" Margin="0,8,0,0"
+                                                   Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
 
                                         <!-- Total Duration Bar -->
                                         <StackPanel Margin="0,16,0,0">

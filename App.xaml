@@ -20,6 +20,8 @@
             <conv:BoolToVisibilityConverter x:Key="BoolToVisibility"/>
             <conv:InverseBoolConverter x:Key="InverseBool"/>
             <conv:NullableToDashConverter x:Key="NullableToDash"/>
+            <conv:NullableMillisecondsConverter x:Key="NullableMilliseconds"/>
+            <conv:TimingBarWidthConverter x:Key="TimingBarWidth"/>
 
             <!-- Mono TextBox Style -->
             <Style x:Key="MonoTextBox" TargetType="TextBox">

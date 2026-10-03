@@ -19,6 +19,11 @@ namespace HttpTrafficMonitor.Models
         private string? _bookmarkNotes;
         private TlsCertificateInfo? _tlsInfo;
         private bool _isSlow;
+        private double? _dnsLookupMs;
+        private double? _tcpConnectMs;
+        private double? _tlsHandshakeMs;
+        private double? _timeToFirstByteMs;
+        private double? _contentDownloadMs;
 
         public int Id { get; set; }
         public DateTime Timestamp { get; set; }
@@ -135,12 +140,34 @@ namespace HttpTrafficMonitor.Models
         public bool IsWebSocket { get; set; }
         public List<WebSocketMessage> WebSocketMessages { get; set; } = new();
 
-        // Performance timing breakdown
-        public double? DnsLookupMs { get; set; }
-        public double? TcpConnectMs { get; set; }
-        public double? TlsHandshakeMs { get; set; }
-        public double? TimeToFirstByteMs { get; set; }
-        public double? ContentDownloadMs { get; set; }
+        // Performance timing breakdown (null = not measured for this request)
+        public double? DnsLookupMs
+        {
+            get => _dnsLookupMs;
+            set { _dnsLookupMs = value; OnPropertyChanged(); OnPropertyChanged(nameof(TimingTotalMs)); }
+        }
+        public double? TcpConnectMs
+        {
+            get => _tcpConnectMs;
+            set { _tcpConnectMs = value; OnPropertyChanged(); OnPropertyChanged(nameof(TimingTotalMs)); }
+        }
+        public double? TlsHandshakeMs
+        {
+            get => _tlsHandshakeMs;
+            set { _tlsHandshakeMs = value; OnPropertyChanged(); OnPropertyChanged(nameof(TimingTotalMs)); }
+        }
+        public double? TimeToFirstByteMs
+        {
+            get => _timeToFirstByteMs;
+            set { _timeToFirstByteMs = value; OnPropertyChanged(); OnPropertyChanged(nameof(TimingTotalMs)); }
+        }
+        public double? ContentDownloadMs
+        {
+            get => _contentDownloadMs;
+            set { _contentDownloadMs = value; OnPropertyChanged(); OnPropertyChanged(nameof(TimingTotalMs)); }
+        }
+        public double TimingTotalMs =>
+            (_dnsLookupMs ?? 0) + (_tcpConnectMs ?? 0) + (_tlsHandshakeMs ?? 0) + (_timeToFirstByteMs ?? 0) + (_contentDownloadMs ?? 0);
 
         // SSL Passthrough indicator (CONNECT logged without MITM)
         public bool IsSslPassthrough { get; set; }
