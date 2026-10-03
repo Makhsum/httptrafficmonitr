@@ -687,8 +687,7 @@ namespace HttpTrafficMonitor.Services
         private static string FormatRequestHeaders(Request request)
         {
             var sb = new StringBuilder();
-            sb.AppendLine($"{request.Method} {request.RequestUri.PathAndQuery} {request.HttpVersion}");
-            sb.AppendLine($"Host: {request.Host}");
+            sb.AppendLine($"{request.Method} {request.RequestUri.PathAndQuery} HTTP/{request.HttpVersion.Major}.{request.HttpVersion.Minor}");
             foreach (var header in request.Headers)
                 sb.AppendLine($"{header.Name}: {header.Value}");
             return sb.ToString().TrimEnd();

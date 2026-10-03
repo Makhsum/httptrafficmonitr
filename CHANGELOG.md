@@ -55,5 +55,6 @@ None yet — no version has been tagged so far. Until the first release, build t
 - A HAR export lists each request's DNS lookup, connect, TLS handshake, wait and download times as the Timing tab shows them; before, the whole duration was written as server wait. A phase that was not measured is written as `-1`, the HAR format's "not available".
 - A HAR export carries every field HAR 1.2 requires (`cookies`, `redirectURL`, no empty `postData`), so stricter HAR viewers such as the perf-cascade waterfall open it instead of failing.
 - MCP server: `add_alert_rule` shows the new rule's name, type, enabled state, pattern and thresholds in its confirmation, as the app stored them; before, only the ID line was filled in.
+- A captured request lists its `Host` header once and its request line ends in `HTTP/1.1`, as the client sent it; before, `Host` appeared twice and the request line read `POST /posts 1.1`. This shows in the Request tab, the Compare window's Req Headers tab and MCP `get_request_details`.
 
 [Unreleased]: https://github.com/Makhsum/httptrafficmonitr/commits/main
