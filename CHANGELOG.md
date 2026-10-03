@@ -34,6 +34,7 @@ None yet — no version has been tagged so far. Until the first release, build t
 
 - MCP server: `get_requests` and `filter_requests` show each request's duration and process instead of `(?) [?]`, and `get_request_details` shows them too.
 - MCP server: `get_traffic_stats` includes the data transferred, the GET/POST/PUT/DELETE counts and the slowest requests, the same figures as the app's status bar.
+- MCP server: `compare_requests` writes both durations the way the app does (`177 ms`, `-` while pending) instead of a raw millisecond number.
 - MCP server: WebSocket messages show their frame type, size and payload, and TLS details show the protocol when the app has it.
 
 [Unreleased]: https://github.com/Makhsum/httptrafficmonitr/commits/main

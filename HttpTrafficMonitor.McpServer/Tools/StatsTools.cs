@@ -241,8 +241,9 @@ public static class StatsTools
 
                 if (!has1 && !has2) continue;
 
-                var val1 = has1 ? FormatDiffValue(v1) : "(missing)";
-                var val2 = has2 ? FormatDiffValue(v2) : "(missing)";
+                // Durations read like the app's comparison view ("177 ms", "-" while pending)
+                var val1 = field == "durationMs" ? TrafficTools.FormatDuration(r1) : has1 ? FormatDiffValue(v1) : "(missing)";
+                var val2 = field == "durationMs" ? TrafficTools.FormatDuration(r2) : has2 ? FormatDiffValue(v2) : "(missing)";
 
                 if (val1 == val2)
                 {
