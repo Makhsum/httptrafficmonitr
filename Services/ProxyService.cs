@@ -525,6 +525,15 @@ namespace HttpTrafficMonitor.Services
             ErrorOccurred?.Invoke($"Proxy error: {ex.Message}");
         }
 
+        // For a server that cannot be reached and for a client that closes the connection during the
+        // TLS handshake (for example because it rejects the certificate), Titanium drops the socket
+        // error and keeps only its own message.
+        private static readonly string[] DroppedConnectionMessages =
+        {
+            "Could not establish connection to ",
+            "Stream is already closed"
+        };
+
         // Titanium reports every connection that a client closes or a server refuses, wrapped as
         // "Connection was aborted" or "Error occured whilst handling session request"; that is
         // routine traffic, not a failure of the proxy.
@@ -533,6 +542,8 @@ namespace HttpTrafficMonitor.Services
             for (Exception? e = ex; e != null; e = e.InnerException)
             {
                 if (e is ObjectDisposedException || e is OperationCanceledException || e is IOException || e is SocketException)
+                    return true;
+                if (DroppedConnectionMessages.Any(m => e.Message.StartsWith(m, StringComparison.Ordinal)))
                     return true;
             }
             return false;

@@ -284,7 +284,7 @@ namespace HttpTrafficMonitor.ViewModels
             {
                 MessageBox.Show($"Failed to start monitoring:\n\n{ex.Message}\n\nMake sure no other proxy is running on port {ProxyService.ProxyPort} and the app is running as Administrator.",
                     "Start Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                StatusMessage = "Failed to start monitoring.";
+                StatusMessage = $"Failed to start monitoring: {ex.Message}";
             }
         }
 
