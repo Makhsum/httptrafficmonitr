@@ -6,7 +6,10 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Security;
 using System.Net.Sockets;
+using System.Reflection;
+using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
@@ -335,8 +338,14 @@ namespace HttpTrafficMonitor.Services
                 SetTimingBreakdown(entry, e, entry.ResponseTime.Value.ToUniversalTime());
 
                 // The server certificate of a new connection is only known once the request has been sent.
-                if (entry.TlsInfo == null && e.HttpClient.Request.IsHttps && _tlsCertCache.TryGetValue(entry.Host, out var tlsInfo))
+                var tlsInfo = entry.TlsInfo;
+                if (tlsInfo == null && e.HttpClient.Request.IsHttps)
+                    _tlsCertCache.TryGetValue(entry.Host, out tlsInfo);
+                if (tlsInfo != null)
+                {
+                    SetNegotiatedTls(tlsInfo, e);
                     entry.TlsInfo = tlsInfo;
+                }
 
                 entry.IsComplete = true;
                 ResponseUpdated?.Invoke(entry);
@@ -437,6 +446,56 @@ namespace HttpTrafficMonitor.Services
 
         private static double ElapsedMs(DateTime fromUtc, DateTime toUtc)
             => Math.Max(0, (toUtc - fromUtc).TotalMilliseconds);
+
+        // The protocol and cipher suite are a property of the server connection, which the certificate
+        // validation does not see; they are read from the connection the response arrived on.
+        private static void SetNegotiatedTls(TlsCertificateInfo info, SessionEventArgs e)
+        {
+            if (info.TlsVersion != null) return;
+
+            var sslStream = GetServerSslStream(e);
+            if (sslStream == null) return;
+
+            try
+            {
+                info.TlsVersion = FormatSslProtocol(sslStream.SslProtocol);
+                info.CipherSuite = sslStream.NegotiatedCipherSuite.ToString();
+            }
+            catch { }
+        }
+
+        // Titanium.Web.Proxy keeps the server connection and its SslStream internal
+        // (HttpWebClient.Connection -> TcpServerConnection.Stream -> HttpStream.baseStream).
+        private static SslStream? GetServerSslStream(SessionEventArgs e)
+        {
+            try
+            {
+                const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+                object? connection = typeof(HttpWebClient).GetProperty("Connection", flags)?.GetValue(e.HttpClient);
+                object? stream = connection?.GetType().GetProperty("Stream", flags)?.GetValue(connection);
+                for (var type = stream?.GetType(); type != null; type = type.BaseType)
+                {
+                    var baseStream = type.GetProperty("baseStream", flags | BindingFlags.DeclaredOnly);
+                    if (baseStream != null)
+                        return baseStream.GetValue(stream) as SslStream;
+                }
+            }
+            catch { }
+            return null;
+        }
+
+        private static string FormatSslProtocol(SslProtocols protocol) => protocol switch
+        {
+#pragma warning disable SYSLIB0039, CS0618 // naming the obsolete protocols is fine, they are only displayed
+            SslProtocols.Ssl2 => "SSL 2.0",
+            SslProtocols.Ssl3 => "SSL 3.0",
+            SslProtocols.Tls => "TLS 1.0",
+            SslProtocols.Tls11 => "TLS 1.1",
+#pragma warning restore SYSLIB0039, CS0618
+            SslProtocols.Tls12 => "TLS 1.2",
+            SslProtocols.Tls13 => "TLS 1.3",
+            _ => protocol.ToString(),
+        };
 
         private Task OnServerCertificateValidation(object sender, CertificateValidationEventArgs e)
         {

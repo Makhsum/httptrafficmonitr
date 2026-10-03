@@ -12,8 +12,9 @@ namespace HttpTrafficMonitor.Models
         public string SerialNumber { get; set; } = string.Empty;
         public string Thumbprint { get; set; } = string.Empty;
         public string SignatureAlgorithm { get; set; } = string.Empty;
-        public string TlsVersion { get; set; } = string.Empty;
-        public string CipherSuite { get; set; } = string.Empty;
+        // Negotiated on the server connection; null until a response arrived over it, or when it cannot be read.
+        public string? TlsVersion { get; set; }
+        public string? CipherSuite { get; set; }
         public int KeySize { get; set; }
         public List<CertificateChainEntry> Chain { get; set; } = new();
         public bool HasErrors { get; set; }

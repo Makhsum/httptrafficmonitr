@@ -749,7 +749,7 @@
                                         <StackPanel Visibility="{Binding SelectedRequest.HasTlsInfo, Converter={StaticResource BoolToVisibility}}">
                                             <TextBlock Text="TLS Connection" Style="{StaticResource SectionHeader}" FontSize="14"/>
 
-                                            <Grid Margin="0,8,0,12">
+                                            <Grid Margin="0,8,0,4">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="Auto"/>
                                                     <ColumnDefinition Width="*"/>
@@ -762,14 +762,16 @@
 
                                                 <TextBlock Grid.Row="0" Grid.Column="0" Text="TLS Version:" FontWeight="SemiBold" Margin="0,2,12,2"
                                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                                                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SelectedRequest.TlsInfo.TlsVersion}"
-                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,2"/>
+                                                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding SelectedRequest.TlsInfo.TlsVersion, TargetNullValue='n/a'}"
+                                                           Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,2"
+                                                           AutomationProperties.AutomationId="Certificate.TlsVersionValue"/>
 
                                                 <TextBlock Grid.Row="1" Grid.Column="0" Text="Cipher Suite:" FontWeight="SemiBold" Margin="0,2,12,2"
                                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
-                                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedRequest.TlsInfo.CipherSuite}"
+                                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding SelectedRequest.TlsInfo.CipherSuite, TargetNullValue='n/a'}"
                                                            Foreground="{DynamicResource TextFillColorPrimaryBrush}" Margin="0,2"
-                                                           TextWrapping="Wrap"/>
+                                                           TextWrapping="Wrap"
+                                                           AutomationProperties.AutomationId="Certificate.CipherSuiteValue"/>
 
                                                 <TextBlock Grid.Row="2" Grid.Column="0" Text="Key Size:" FontWeight="SemiBold" Margin="0,2,12,2"
                                                            Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
@@ -778,6 +780,9 @@
                                                     <Run Text="{Binding SelectedRequest.TlsInfo.KeySize, Mode=OneWay}"/><Run Text=" bits"/>
                                                 </TextBlock>
                                             </Grid>
+                                            <TextBlock Text="n/a: not known for this request, for example a mocked request or one whose response never arrived."
+                                                       TextWrapping="Wrap" FontSize="11" Margin="0,0,0,12"
+                                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
 
                                             <TextBlock Text="Certificate Details" Style="{StaticResource SectionHeader}"/>
                                             <Grid Margin="0,8,0,12">
