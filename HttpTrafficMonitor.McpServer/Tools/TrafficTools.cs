@@ -423,7 +423,8 @@ public static class TrafficTools
     {
         foreach (var prop in timing.EnumerateObject())
         {
-            sb.AppendLine($"  {prop.Name}: {prop.Value}ms");
+            var value = prop.Value.ValueKind == JsonValueKind.Number ? $"{prop.Value.GetDouble():F0} ms" : "n/a";
+            sb.AppendLine($"  {prop.Name}: {value}");
         }
     }
 }

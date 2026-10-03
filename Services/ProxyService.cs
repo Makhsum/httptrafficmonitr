@@ -294,12 +294,6 @@ namespace HttpTrafficMonitor.Services
                 entry.StatusCode = e.HttpClient.Response.StatusCode;
                 entry.ResponseContentType = e.HttpClient.Response.ContentType ?? string.Empty;
                 entry.ResponseHeaders = FormatResponseHeaders(e.HttpClient.Response);
-                entry.ResponseTime = DateTime.Now;
-                entry.Duration = entry.ResponseTime.Value - entry.Timestamp;
-
-                // Mark slow requests
-                if (entry.Duration.Value.TotalMilliseconds > SlowRequestThresholdMs)
-                    entry.IsSlow = true;
 
                 if (e.HttpClient.Response.HasBody)
                 {
@@ -328,7 +322,15 @@ namespace HttpTrafficMonitor.Services
                     }
                 }
 
-                SetTimingBreakdown(entry, e, DateTime.UtcNow);
+                // Stamped once the body has been read, so the duration includes the download phase.
+                entry.ResponseTime = DateTime.Now;
+                entry.Duration = entry.ResponseTime.Value - entry.Timestamp;
+
+                // Mark slow requests
+                if (entry.Duration.Value.TotalMilliseconds > SlowRequestThresholdMs)
+                    entry.IsSlow = true;
+
+                SetTimingBreakdown(entry, e, entry.ResponseTime.Value.ToUniversalTime());
 
                 // The server certificate of a new connection is only known once the request has been sent.
                 if (entry.TlsInfo == null && e.HttpClient.Request.IsHttps && _tlsCertCache.TryGetValue(entry.Host, out var tlsInfo))
