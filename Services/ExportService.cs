@@ -19,6 +19,8 @@ namespace HttpTrafficMonitor.Services
             foreach (var (key, value) in headers)
             {
                 if (key.Equals("Host", StringComparison.OrdinalIgnoreCase)) continue;
+                // curl sets the length of the body it sends; the captured one may not match the formatted body
+                if (key.Equals("Content-Length", StringComparison.OrdinalIgnoreCase)) continue;
                 sb.Append($" \\\n  -H '{key}: {value}'");
             }
 

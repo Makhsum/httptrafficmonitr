@@ -140,10 +140,11 @@ public static class AlertTools
             sb.AppendLine("=== Alert Events ===");
             sb.AppendLine();
 
-            if (result.ValueKind == JsonValueKind.Array)
+            // The app sends {events, totalCount}, newest event first
+            if (result.TryGetProperty("events", out var events) && events.ValueKind == JsonValueKind.Array)
             {
                 int count = 0;
-                foreach (var evt in result.EnumerateArray())
+                foreach (var evt in events.EnumerateArray())
                 {
                     count++;
                     var timestamp = GetString(evt, "timestamp");
@@ -155,24 +156,7 @@ public static class AlertTools
                 if (count == 0)
                     sb.AppendLine("No alert events found.");
                 else
-                    sb.AppendLine($"\nShowing {count} event(s) (skip={skip}, take={take}).");
-            }
-            else if (result.TryGetProperty("items", out var items) && items.ValueKind == JsonValueKind.Array)
-            {
-                int count = 0;
-                foreach (var evt in items.EnumerateArray())
-                {
-                    count++;
-                    var timestamp = GetString(evt, "timestamp");
-                    var ruleName = GetString(evt, "ruleName");
-                    var message = GetString(evt, "message");
-                    sb.AppendLine($"[{timestamp}] {ruleName}: {message}");
-                }
-
-                if (count == 0)
-                    sb.AppendLine("No alert events found.");
-                else
-                    sb.AppendLine($"\nShowing {count} event(s) (skip={skip}, take={take}).");
+                    sb.AppendLine($"\nShowing {count} of {GetString(result, "totalCount")} event(s) (skip={skip}, take={take}).");
             }
             else
             {

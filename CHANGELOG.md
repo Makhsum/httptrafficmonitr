@@ -39,5 +39,9 @@ None yet — no version has been tagged so far. Until the first release, build t
 - MCP server: `get_bookmarks` lists every request bookmarked in the app, with its notes, instead of `No bookmarked requests found.`; `toggle_bookmark` says whether the request is now bookmarked.
 - MCP server: `compare_requests` shows the changed lines of the request and response headers and bodies, the same diff as the app's Compare view, and its timing line (`A | B | Δ`).
 - The bookmark star in the request grid bookmarks the row it is clicked on; before, it toggled the row that was selected until then.
+- MCP server: `get_alert_events` lists the alert events the app has recorded, with time, rule and message, instead of `No alert events found.`
+- MCP server: `export_as_csv` and `export_as_curl` return the CSV text and the curl command themselves instead of the app's escaped JSON reply; `export_as_curl` says when a request does not exist.
+- MCP server: `get_request_tls_info` says when a request was sent over plain HTTP or has no TLS details, instead of asking whether the app is running.
+- An exported or copied cURL command no longer carries the captured `Content-Length`, which cut off the formatted request body when the command was run.
 
 [Unreleased]: https://github.com/Makhsum/httptrafficmonitr/commits/main

@@ -1,5 +1,6 @@
 using ModelContextProtocol.Server;
 using System.ComponentModel;
+using System.Net;
 using System.Text.Json;
 
 namespace HttpTrafficMonitor.McpServer.Tools;
@@ -14,8 +15,13 @@ public static class ExportTools
     {
         try
         {
-            var result = await client.GetStringAsync($"/export/curl/{requestId}");
-            return $"=== curl Command ===\n\n{result}";
+            // The app sends the command as {curl}
+            var result = await client.GetAsync($"/export/curl/{requestId}");
+            return $"=== curl Command ===\n\n{GetString(result, "curl")}";
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            return $"Request #{requestId} not found.";
         }
         catch (HttpRequestException ex)
         {
@@ -85,18 +91,8 @@ public static class ExportTools
             var ids = ParseRequestIds(requestIds);
             var result = await client.PostAsync("/export/csv", new { requestIds = ids });
 
-            // CSV might come back as a string property or as the raw response
-            var csv = result.ValueKind == JsonValueKind.String
-                ? result.GetString() ?? ""
-                : GetString(result, "data");
-
-            if (string.IsNullOrEmpty(csv))
-            {
-                // The entire result might be the CSV content represented as JSON
-                csv = result.ToString();
-            }
-
-            return $"=== CSV Export ===\n\n{csv}";
+            // The app sends the CSV text as {csv}
+            return $"=== CSV Export ===\n\n{GetString(result, "csv").TrimEnd()}";
         }
         catch (HttpRequestException ex)
         {

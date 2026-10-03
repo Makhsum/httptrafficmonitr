@@ -1,5 +1,6 @@
 using ModelContextProtocol.Server;
 using System.ComponentModel;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 
@@ -182,6 +183,33 @@ public static class TrafficTools
             FormatTlsInfo(sb, result);
 
             return sb.ToString().TrimEnd();
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            // The app answers 404 both for an unknown request and for one without TLS details
+            return await DescribeMissingTlsInfo(client, requestId);
+        }
+        catch (HttpRequestException ex)
+        {
+            return $"Error: {ex.Message}. Make sure HttpTrafficMonitor is running.";
+        }
+    }
+
+    private static async Task<string> DescribeMissingTlsInfo(IpcClient client, int requestId)
+    {
+        try
+        {
+            var request = await client.GetAsync($"/requests/{requestId}");
+            var scheme = request.TryGetProperty("scheme", out var schemeEl) ? schemeEl.GetString() : null;
+            var url = request.TryGetProperty("url", out var urlEl) ? urlEl.GetString() : "?";
+
+            return string.Equals(scheme, "http", StringComparison.OrdinalIgnoreCase)
+                ? $"Request #{requestId} ({url}) was sent over plain HTTP, so it has no TLS details."
+                : $"No TLS details were recorded for request #{requestId} ({url}).";
+        }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            return $"Request #{requestId} not found.";
         }
         catch (HttpRequestException ex)
         {
