@@ -39,6 +39,8 @@ Choose this tool when you are on Windows and want a free graphical inspector tha
 
 ![Live capture with charts](docs/screenshots/02-live-capture.png)
 
+*The screenshots show demo traffic only: `curl` calls to public sample APIs (JSONPlaceholder, httpbin, example.com, GitHub). The 404 and 500 responses among them are requested on purpose, to show how failed requests stand out.*
+
 ## Features
 
 ### Capture & inspect
@@ -65,14 +67,14 @@ Edit and resend any captured request, or compose a brand-new one from scratch, w
 Pick two requests and get a line-by-line diff (via [DiffPlex](https://github.com/mmanela/diffplex)) across headers and bodies.
 
 ### Alerts
-Rule-based alerting on status codes, response time thresholds, or custom patterns, with a live event feed.
+Rule-based alerting on status codes, response time thresholds, or custom patterns, with a live event feed. Below, the built-in **Server Errors (5xx)** rule has caught the demo request to `httpbin.org/status/500`.
 
-![Alerts tab](docs/screenshots/07-alerts-tab.png)
+![Alerts tab with the 5xx rule firing on a demo request](docs/screenshots/07-alerts-tab.png)
 
 ### Auto-Responder (mocking)
 Intercept matching requests (by URL/regex + method) and return a canned status code, headers, and body — or serve a file — with an optional artificial delay. Great for mocking flaky or unavailable backends during development.
 
-![Auto-Responder tab](docs/screenshots/08-autoresponder-tab.png)
+![Auto-Responder tab with a mock rule for a sample API](docs/screenshots/08-autoresponder-tab.png)
 
 ### Graphs
 Live requests-per-second and bandwidth charts, plus top-domains and top-processes breakdowns (via [LiveCharts2](https://livecharts.dev/)).
