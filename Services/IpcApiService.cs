@@ -1006,20 +1006,25 @@ namespace HttpTrafficMonitor.Services
 
             // Read the file before touching the grid, so a file that is not a session leaves it as it was.
             SessionData session;
+            List<HttpRequestEntry> entries;
             try
             {
                 session = SessionService.LoadSession(body.FilePath!);
+                entries = SessionService.RestoreRequests(session);
             }
             catch (Exception ex) when (ex is InvalidDataException || ex is Newtonsoft.Json.JsonException)
             {
                 WriteError(response, $"Not a valid session file: {body.FilePath} ({ex.Message})", 422);
                 return;
             }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                WriteError(response, $"Session file cannot be opened: {body.FilePath} ({ex.Message})", 403);
+                return;
+            }
 
             int requestCount = InvokeOnUI(() =>
             {
-                var entries = SessionService.RestoreRequests(session);
-
                 lock (_vm.CollectionLock) { _vm.AllRequests.Clear(); }
                 _vm.TotalRequests = 0;
                 _vm.GetCount = 0;

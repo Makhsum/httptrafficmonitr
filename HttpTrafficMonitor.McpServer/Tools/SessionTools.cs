@@ -48,6 +48,10 @@ public static class SessionTools
         {
             return $"'{filePath}' could not be read as a session. Load a .hts file saved by HttpTrafficMonitor.";
         }
+        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
+        {
+            return $"Session file cannot be opened: {filePath}. Another program may hold it open, or you lack permission to read it.";
+        }
         catch (HttpRequestException ex)
         {
             return $"Error loading session: {ex.Message}. Make sure HttpTrafficMonitor is running.";

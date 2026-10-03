@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using HttpTrafficMonitor.Models;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace HttpTrafficMonitor.Services
 {
@@ -35,8 +36,14 @@ namespace HttpTrafficMonitor.Services
             using var reader = new StreamReader(gzip, Encoding.UTF8);
             string json = reader.ReadToEnd();
 
-            var session = JsonConvert.DeserializeObject<SessionData>(json)
-                ?? throw new InvalidDataException("Invalid session file.");
+            // Any other gzipped JSON object (a HAR file, {}) would deserialize into an empty session,
+            // so ask for the parts every saved session has.
+            if (JsonConvert.DeserializeObject<JToken>(json) is not JObject root || root["Requests"] is not JArray)
+                throw new InvalidDataException("Invalid session file.");
+
+            var session = root.ToObject<SessionData>()!;
+            if (session.Settings == null || session.Bookmarks == null || session.Requests.Any(r => r?.Method == null))
+                throw new InvalidDataException("Incomplete session file.");
 
             AddRecentSession(path);
             return session;
@@ -93,7 +100,8 @@ namespace HttpTrafficMonitor.Services
 
         public static List<HttpRequestEntry> RestoreRequests(SessionData session)
         {
-            var bookmarkLookup = session.Bookmarks.ToDictionary(b => b.RequestId);
+            // Requests captured after a load can repeat an ID, so a saved session may bookmark the same ID twice.
+            var bookmarkLookup = session.Bookmarks.GroupBy(b => b.RequestId).ToDictionary(g => g.Key, g => g.First());
             return session.Requests.Select(r =>
             {
                 var entry = new HttpRequestEntry
