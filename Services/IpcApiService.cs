@@ -767,20 +767,7 @@ namespace HttpTrafficMonitor.Services
         private void HandleGetAutoResponderRules(HttpListenerResponse response)
         {
             var rules = InvokeOnUI(() =>
-                _vm.AutoResponderVm.Rules.Select(r => new
-                {
-                    id = r.Id,
-                    isEnabled = r.IsEnabled,
-                    urlPattern = r.UrlPattern,
-                    isRegex = r.IsRegex,
-                    httpMethod = r.HttpMethod,
-                    responseStatusCode = r.ResponseStatusCode,
-                    responseHeaders = r.ResponseHeaders,
-                    responseBody = r.ResponseBody,
-                    responseFilePath = r.ResponseFilePath,
-                    delayMs = r.DelayMs,
-                    matchCount = r.MatchCount
-                }).ToArray()
+                _vm.AutoResponderVm.Rules.Select(MapAutoResponderRule).ToArray()
             );
             WriteJson(response, rules);
         }
@@ -789,8 +776,7 @@ namespace HttpTrafficMonitor.Services
         {
             var body = ReadBody<AutoResponderRuleDto>(request);
 
-            string ruleId = string.Empty;
-            InvokeOnUI(() =>
+            var data = InvokeOnUI(() =>
             {
                 var rule = new AutoResponderRule
                 {
@@ -805,10 +791,10 @@ namespace HttpTrafficMonitor.Services
                     DelayMs = body.DelayMs ?? 0
                 };
                 _vm.AutoResponderVm.Rules.Add(rule);
-                ruleId = rule.Id;
+                return MapAutoResponderRule(rule);
             });
 
-            WriteJson(response, new { success = true, id = ruleId });
+            WriteJson(response, data);
         }
 
         private void HandleUpdateAutoResponderRule(string path, HttpListenerRequest request, HttpListenerResponse response)
@@ -816,10 +802,10 @@ namespace HttpTrafficMonitor.Services
             string id = path.Substring("/api/auto-responder/rules/".Length);
             var body = ReadBody<AutoResponderRuleDto>(request);
 
-            bool found = InvokeOnUI(() =>
+            var data = InvokeOnUI(() =>
             {
                 var rule = _vm.AutoResponderVm.Rules.FirstOrDefault(r => r.Id == id);
-                if (rule == null) return false;
+                if (rule == null) return null;
 
                 if (body.IsEnabled.HasValue) rule.IsEnabled = body.IsEnabled.Value;
                 if (body.UrlPattern != null) rule.UrlPattern = body.UrlPattern;
@@ -831,15 +817,15 @@ namespace HttpTrafficMonitor.Services
                 if (body.ResponseFilePath != null) rule.ResponseFilePath = body.ResponseFilePath;
                 if (body.DelayMs.HasValue) rule.DelayMs = body.DelayMs.Value;
 
-                return true;
+                return MapAutoResponderRule(rule);
             });
 
-            if (!found)
+            if (data == null)
             {
                 WriteError(response, "Auto-responder rule not found.", 404);
                 return;
             }
-            WriteJson(response, new { success = true });
+            WriteJson(response, data);
         }
 
         private void HandleDeleteAutoResponderRule(string path, HttpListenerResponse response)
@@ -1501,6 +1487,24 @@ namespace HttpTrafficMonitor.Services
                 isSlow = e.IsSlow,
                 isWebSocket = e.IsWebSocket,
                 isComplete = e.IsComplete
+            };
+        }
+
+        private static object MapAutoResponderRule(AutoResponderRule r)
+        {
+            return new
+            {
+                id = r.Id,
+                isEnabled = r.IsEnabled,
+                urlPattern = r.UrlPattern,
+                isRegex = r.IsRegex,
+                httpMethod = r.HttpMethod,
+                responseStatusCode = r.ResponseStatusCode,
+                responseHeaders = r.ResponseHeaders,
+                responseBody = r.ResponseBody,
+                responseFilePath = r.ResponseFilePath,
+                delayMs = r.DelayMs,
+                matchCount = r.MatchCount
             };
         }
 

@@ -45,5 +45,7 @@ None yet — no version has been tagged so far. Until the first release, build t
 - An exported or copied cURL command no longer carries the captured `Content-Length`, which cut off the formatted request body when the command was run.
 - An exported or copied cURL command runs as pasted: quotes in the URL and header values are escaped, a HEAD request uses `-I` instead of waiting for a body, and `--compressed` is added when the request accepted a compressed response.
 - A CSV export writes a quote inside a URL, host or process name twice, so a URL such as `?q="a,b"` no longer splits its row into an extra column.
+- Auto-Responder: a matched rule answers with the status code it is set to (for example `503` or `404`) instead of always `200`, and a mocked request shows its status, size and duration in the grid and its response in the detail tabs.
+- MCP server: `add_auto_responder_rule` and `update_auto_responder_rule` show the rule's URL pattern, method and status code in their confirmation.
 
 [Unreleased]: https://github.com/Makhsum/httptrafficmonitr/commits/main

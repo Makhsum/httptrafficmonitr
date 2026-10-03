@@ -176,17 +176,9 @@ namespace HttpTrafficMonitor.Services
                     return;
 
                 // Auto-responder check
-                if (AutoResponderEnabled)
-                {
-                    var matchingRule = AutoResponderRules.FirstOrDefault(r =>
-                        r.Matches(e.HttpClient.Request.Url, e.HttpClient.Request.Method));
-
-                    if (matchingRule != null)
-                    {
-                        await HandleAutoResponse(e, matchingRule);
-                        // Still capture the request for display
-                    }
-                }
+                var matchingRule = AutoResponderEnabled
+                    ? AutoResponderRules.FirstOrDefault(r => r.Matches(e.HttpClient.Request.Url, e.HttpClient.Request.Method))
+                    : null;
 
                 int id = Interlocked.Increment(ref _requestCounter);
                 string requestBody = string.Empty;
@@ -248,6 +240,9 @@ namespace HttpTrafficMonitor.Services
 
                 e.UserData = entry;
                 RequestCaptured?.Invoke(entry);
+
+                if (matchingRule != null)
+                    await HandleAutoResponse(e, matchingRule, entry);
             }
             catch (Exception ex)
             {
@@ -370,7 +365,7 @@ namespace HttpTrafficMonitor.Services
             return Task.CompletedTask;
         }
 
-        private async Task HandleAutoResponse(SessionEventArgs e, AutoResponderRule rule)
+        private async Task HandleAutoResponse(SessionEventArgs e, AutoResponderRule rule, HttpRequestEntry entry)
         {
             try
             {
@@ -395,8 +390,30 @@ namespace HttpTrafficMonitor.Services
                     }
                 }
 
-                e.Ok(body, headers, true);
+                e.GenericResponse(body, (HttpStatusCode)rule.ResponseStatusCode, headers, true);
                 rule.MatchCount++;
+
+                // BeforeResponse is not raised for a response set here, so the entry is completed now.
+                var response = e.HttpClient.Response;
+                byte[] bodyBytes = response.Encoding.GetBytes(body);
+
+                entry.StatusCode = response.StatusCode;
+                entry.ResponseContentType = response.ContentType ?? string.Empty;
+                entry.ResponseHeaders = FormatResponseHeaders(response);
+                entry.ResponseTime = DateTime.Now;
+                entry.Duration = entry.ResponseTime.Value - entry.Timestamp;
+
+                if (entry.Duration.Value.TotalMilliseconds > SlowRequestThresholdMs)
+                    entry.IsSlow = true;
+
+                entry.ResponseSize = bodyBytes.Length;
+                if (bodyBytes.Length <= FormatHelper.MaxBodyCaptureSize)
+                    entry.ResponseBody = FormatHelper.FormatBody(body, response.ContentType);
+                else
+                    entry.ResponseBody = $"[Body too large: {FormatHelper.FormatSize(bodyBytes.Length)}]";
+
+                entry.IsComplete = true;
+                ResponseUpdated?.Invoke(entry);
             }
             catch (Exception ex)
             {
