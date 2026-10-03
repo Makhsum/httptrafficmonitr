@@ -24,7 +24,7 @@ public class IpcClient : IDisposable
     public async Task<JsonElement> GetAsync(string path)
     {
         var response = await _http.GetAsync($"/api{path}");
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(response);
         var json = await response.Content.ReadAsStringAsync();
         return JsonSerializer.Deserialize<JsonElement>(json, JsonOpts);
     }
@@ -32,7 +32,7 @@ public class IpcClient : IDisposable
     public async Task<string> GetStringAsync(string path)
     {
         var response = await _http.GetAsync($"/api{path}");
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(response);
         return await response.Content.ReadAsStringAsync();
     }
 
@@ -49,7 +49,7 @@ public class IpcClient : IDisposable
         {
             response = await _http.PostAsync($"/api{path}", null);
         }
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(response);
         var json = await response.Content.ReadAsStringAsync();
         return JsonSerializer.Deserialize<JsonElement>(json, JsonOpts);
     }
@@ -59,7 +59,7 @@ public class IpcClient : IDisposable
         var content = new StringContent(
             JsonSerializer.Serialize(body, JsonOpts), Encoding.UTF8, "application/json");
         var response = await _http.PutAsync($"/api{path}", content);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(response);
         var json = await response.Content.ReadAsStringAsync();
         return JsonSerializer.Deserialize<JsonElement>(json, JsonOpts);
     }
@@ -67,10 +67,42 @@ public class IpcClient : IDisposable
     public async Task<JsonElement> DeleteAsync(string path)
     {
         var response = await _http.DeleteAsync($"/api{path}");
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessAsync(response);
         var json = await response.Content.ReadAsStringAsync();
         return JsonSerializer.Deserialize<JsonElement>(json, JsonOpts);
     }
 
+    // Same exception as EnsureSuccessStatusCode, plus the {"error": ...} text the app answered with
+    private static async Task EnsureSuccessAsync(HttpResponseMessage response)
+    {
+        if (response.IsSuccessStatusCode)
+            return;
+
+        string? apiError = null;
+        try
+        {
+            var json = await response.Content.ReadAsStringAsync();
+            var body = JsonSerializer.Deserialize<JsonElement>(json, JsonOpts);
+            if (body.ValueKind == JsonValueKind.Object && body.TryGetProperty("error", out var error) && error.ValueKind == JsonValueKind.String)
+                apiError = error.GetString();
+        }
+        catch (JsonException) { }
+
+        throw new IpcApiException(
+            $"Response status code does not indicate success: {(int)response.StatusCode} ({response.ReasonPhrase}).",
+            response.StatusCode, apiError);
+    }
+
     public void Dispose() => _http.Dispose();
+}
+
+public class IpcApiException : HttpRequestException
+{
+    public string? ApiError { get; }
+
+    public IpcApiException(string message, System.Net.HttpStatusCode statusCode, string? apiError)
+        : base(message, null, statusCode)
+    {
+        ApiError = apiError;
+    }
 }

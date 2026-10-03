@@ -8,6 +8,10 @@ namespace HttpTrafficMonitor.Services
 {
     public class AlertService
     {
+        // A StatusCode rule without a range watches the error codes
+        public const int DefaultStatusCodeMin = 400;
+        public const int DefaultStatusCodeMax = 599;
+
         public ObservableCollection<AlertRule> Rules { get; } = new();
         public event Action<AlertEvent>? AlertTriggered;
 
@@ -45,8 +49,8 @@ namespace HttpTrafficMonitor.Services
                     if (entry.StatusCode.HasValue)
                     {
                         int code = entry.StatusCode.Value;
-                        int min = rule.StatusCodeMin ?? 400;
-                        int max = rule.StatusCodeMax ?? 599;
+                        int min = rule.StatusCodeMin ?? DefaultStatusCodeMin;
+                        int max = rule.StatusCodeMax ?? DefaultStatusCodeMax;
                         if (code >= min && code <= max)
                             return $"Status {code} on {entry.Url}";
                     }
@@ -82,6 +86,50 @@ namespace HttpTrafficMonitor.Services
                     if (rule.SizeThresholdBytes.HasValue &&
                         entry.ResponseSize.HasValue && entry.ResponseSize.Value > rule.SizeThresholdBytes.Value)
                         return $"Large response ({entry.ResponseSizeFormatted}) on {entry.Url}";
+                    break;
+            }
+            return null;
+        }
+
+        // Says why EvaluateRule could never return a message for the rule, or null when it can fire
+        public static string? FindWhyRuleCannotFire(AlertRule rule)
+        {
+            switch (rule.Type)
+            {
+                case AlertRuleType.StatusCode:
+                    int min = rule.StatusCodeMin ?? DefaultStatusCodeMin;
+                    int max = rule.StatusCodeMax ?? DefaultStatusCodeMax;
+                    if (min > max)
+                        return $"the status code range {min}-{max} is empty: the minimum {min} is above the maximum {max}" +
+                               (rule.StatusCodeMin.HasValue && rule.StatusCodeMax.HasValue ? "" : $" (without statusCodeMin/statusCodeMax a StatusCode rule covers {DefaultStatusCodeMin}-{DefaultStatusCodeMax})") +
+                               ", so no status code can match.";
+                    break;
+
+                case AlertRuleType.ResponseTime:
+                    if (!rule.ResponseTimeThresholdMs.HasValue)
+                        return "a ResponseTime rule needs responseTimeThresholdMs, the response time in milliseconds above which it fires.";
+                    break;
+
+                case AlertRuleType.Domain:
+                case AlertRuleType.Process:
+                    string matched = rule.Type == AlertRuleType.Domain ? "host name" : "process name";
+                    if (string.IsNullOrWhiteSpace(rule.Pattern))
+                        return $"a {rule.Type} rule needs a pattern, the text the {matched} must contain.";
+                    if (rule.Pattern.IndexOfAny(new[] { '*', '?' }) >= 0)
+                    {
+                        string plain = rule.Pattern.Trim('*', '?', '.');
+                        return $"the pattern '{rule.Pattern}' is matched as plain text anywhere in the {matched}, not as a wildcard, " +
+                               $"and no {matched} contains '*' or '?'. " +
+                               (plain.Length > 0 && plain.IndexOfAny(new[] { '*', '?' }) < 0
+                                   ? $"Use '{plain}' instead: it matches every {matched} that contains it."
+                                   : $"Leave the wildcard out: the pattern matches every {matched} that contains it.");
+                    }
+                    break;
+
+                case AlertRuleType.RequestSize:
+                case AlertRuleType.ResponseSize:
+                    if (!rule.SizeThresholdBytes.HasValue)
+                        return $"a {rule.Type} rule needs sizeThresholdBytes, the size in bytes above which it fires.";
                     break;
             }
             return null;

@@ -49,13 +49,13 @@ public static class AlertTools
     [McpServerTool, Description("Add a new alert rule. Supported types: StatusCode, ResponseTime, Domain, Process, RequestSize, ResponseSize.")]
     public static async Task<string> add_alert_rule(
         IpcClient client,
-        [Description("Name of the alert rule")] string name,
+        [Description("Name of the alert rule (required; alert events name the rule that fired)")] string name,
         [Description("Type of alert: StatusCode, ResponseTime, Domain, Process, RequestSize, or ResponseSize")] string type,
-        [Description("Pattern to match (for Domain/Process types)")] string? pattern = null,
-        [Description("Minimum status code to trigger alert (for StatusCode type)")] int? statusCodeMin = null,
-        [Description("Maximum status code to trigger alert (for StatusCode type)")] int? statusCodeMax = null,
-        [Description("Response time threshold in milliseconds (for ResponseTime type)")] int? responseTimeThresholdMs = null,
-        [Description("Size threshold in bytes (for RequestSize/ResponseSize types)")] long? sizeThresholdBytes = null,
+        [Description("Text the host name or process name must contain (required for Domain/Process types). Matched as plain text, not as a wildcard: use 'httpbin.org', not '*.httpbin.org'")] string? pattern = null,
+        [Description("Minimum status code to trigger alert (for StatusCode type, default 400)")] int? statusCodeMin = null,
+        [Description("Maximum status code to trigger alert (for StatusCode type, default 599)")] int? statusCodeMax = null,
+        [Description("Response time threshold in milliseconds (required for ResponseTime type)")] int? responseTimeThresholdMs = null,
+        [Description("Size threshold in bytes (required for RequestSize/ResponseSize types)")] long? sizeThresholdBytes = null,
         [Description("Whether to play a sound when the alert triggers")] bool playSound = false,
         [Description("Whether the rule is enabled")] bool isEnabled = true)
     {
@@ -84,9 +84,10 @@ public static class AlertTools
 
             return sb.ToString().TrimEnd();
         }
-        catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.BadRequest)
+        catch (IpcApiException ex) when (ex.StatusCode == HttpStatusCode.BadRequest)
         {
-            return $"No alert rule was created: '{type}' is not an alert rule type. Supported types: StatusCode, ResponseTime, Domain, Process, RequestSize, ResponseSize.";
+            // The app names what is wrong: an unknown type, a missing name, or a rule that could never fire
+            return $"No alert rule was created: {ex.ApiError ?? ex.Message}";
         }
         catch (HttpRequestException ex)
         {

@@ -638,31 +638,52 @@ namespace HttpTrafficMonitor.Services
         {
             var body = ReadBody<AlertRuleDto>(request);
 
+            if (string.IsNullOrWhiteSpace(body.Name))
+            {
+                WriteError(response, "the rule has no name. Give it one: the Alerts tab lists the rule by its name and each alert event names the rule that fired.");
+                return;
+            }
+
             // Only a type's name counts, in any letter case; Enum.TryParse alone would also take "7" or "StatusCode,Domain".
             var typeName = Enum.GetNames<AlertRuleType>()
                 .FirstOrDefault(n => string.Equals(n, body.Type?.Trim(), StringComparison.OrdinalIgnoreCase));
             if (typeName == null)
             {
-                WriteError(response, $"Unknown alert rule type: '{body.Type}'. Supported types: {string.Join(", ", Enum.GetNames<AlertRuleType>())}.");
+                WriteError(response, $"'{body.Type}' is not an alert rule type. Supported types: {string.Join(", ", Enum.GetNames<AlertRuleType>())}.");
                 return;
             }
             var ruleType = Enum.Parse<AlertRuleType>(typeName);
 
+            var rule = new AlertRule
+            {
+                Name = body.Name,
+                IsEnabled = body.IsEnabled ?? true,
+                Type = ruleType,
+                Pattern = body.Pattern ?? string.Empty,
+                StatusCodeMin = body.StatusCodeMin,
+                StatusCodeMax = body.StatusCodeMax,
+                ResponseTimeThresholdMs = body.ResponseTimeThresholdMs,
+                SizeThresholdBytes = body.SizeThresholdBytes,
+                PlaySound = body.PlaySound ?? false,
+                ShowToast = body.ShowToast ?? true
+            };
+
+            string? cannotFire = AlertService.FindWhyRuleCannotFire(rule);
+            if (cannotFire != null)
+            {
+                WriteError(response, cannotFire);
+                return;
+            }
+
+            // Store the range a StatusCode rule fires on, so the rule shows it wherever it is listed
+            if (rule.Type == AlertRuleType.StatusCode)
+            {
+                rule.StatusCodeMin ??= AlertService.DefaultStatusCodeMin;
+                rule.StatusCodeMax ??= AlertService.DefaultStatusCodeMax;
+            }
+
             var data = InvokeOnUI(() =>
             {
-                var rule = new AlertRule
-                {
-                    Name = body.Name ?? "Unnamed",
-                    IsEnabled = body.IsEnabled ?? true,
-                    Type = ruleType,
-                    Pattern = body.Pattern ?? string.Empty,
-                    StatusCodeMin = body.StatusCodeMin,
-                    StatusCodeMax = body.StatusCodeMax,
-                    ResponseTimeThresholdMs = body.ResponseTimeThresholdMs,
-                    SizeThresholdBytes = body.SizeThresholdBytes,
-                    PlaySound = body.PlaySound ?? false,
-                    ShowToast = body.ShowToast ?? true
-                };
                 _vm.AlertsVm.Rules.Add(rule);
                 return MapAlertRule(rule);
             });
