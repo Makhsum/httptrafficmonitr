@@ -180,9 +180,8 @@ namespace HttpTrafficMonitor.Services
                 if (_explicitEndPoint != null)
                     _explicitEndPoint.BeforeTunnelConnectRequest -= OnBeforeTunnelConnectRequest;
                 _proxyServer.BeforeRequest -= OnBeforeRequest;
-                _proxyServer.BeforeResponse -= OnBeforeResponse;
-                _proxyServer.AfterResponse -= OnAfterResponse;
-                _proxyServer.ServerCertificateValidationCallback -= OnServerCertificateValidation;
+                // Stop only closes the listener: a session already running still gets its answer, so the
+                // response handlers stay attached to finish the requests that are in the grid.
                 _proxyServer.Stop();
             }
             catch { }
