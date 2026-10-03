@@ -88,7 +88,7 @@ dotnet build HttpTrafficMonitor.McpServer/HttpTrafficMonitor.McpServer.csproj -c
 
 This produces `HttpTrafficMonitor.McpServer/bin/Debug/net8.0/HttpTrafficMonitor.McpServer.exe`. Adjust paths below if you build in `Release` or from a different clone location.
 
-**Claude Code** — project-scoped `.mcp.json` in the repo root, or via CLI:
+**Claude Code** — the repo ships a project-scoped `.mcp.json` in its root that starts the server with `dotnet run --project HttpTrafficMonitor.McpServer`, so opening the clone in Claude Code is enough (approve the `httptrafficmonitor` server when prompted) — no absolute paths to adjust. To register a built exe instead, use the CLI:
 
 ```
 claude mcp add httptrafficmonitor -- "C:\Projects\httptrafficmonitr\HttpTrafficMonitor.McpServer\bin\Debug\net8.0\HttpTrafficMonitor.McpServer.exe"

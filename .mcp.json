@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "httptrafficmonitor": {
+      "type": "stdio",
+      "command": "dotnet",
+      "args": [
+        "run",
+        "--project",
+        "HttpTrafficMonitor.McpServer"
+      ],
+      "env": {}
+    }
+  }
+}
