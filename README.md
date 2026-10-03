@@ -1,8 +1,37 @@
 # HTTP Traffic Monitor
 
-A Windows desktop app that acts as a local HTTP/HTTPS man-in-the-middle proxy, giving you a Fiddler/Charles-style traffic inspector with modern WPF Fluent UI — plus an **MCP server** so AI assistants (Claude, etc.) can drive it directly.
+**A free, open-source HTTP/HTTPS debugging proxy for Windows with a built-in MCP server — so Claude and other AI assistants can inspect, filter, replay and mock the traffic you capture.**
+
+For developers and testers on Windows who need to see what an app, a service or a browser really sends and receives: a Fiddler/Charles-style traffic inspector, MIT-licensed, that your AI assistant can drive too.
+
+[**⬇ Download for Windows**](https://github.com/Makhsum/httptrafficmonitr/releases/latest) · [**▶ Watch the demo**](#see-it-in-action) · [How it compares](#how-it-compares) · [MCP setup](#configuring-the-mcp-server)
+
+**Why pick it**
+- **AI-ready out of the box** — 42 MCP tools let an assistant start a capture, find the failing requests, replay them and set up mocks; no paid tier.
+- **Every app on the machine, not one browser tab** — it captures system-wide as the Windows proxy and shows which process sent each request.
+- **Free and open source** — MIT license, Fluent UI with light and dark themes.
+
+**From download to the first captured request**
+1. Download the app zip from [Releases](https://github.com/Makhsum/httptrafficmonitr/releases/latest) and unzip it (or [build from source](#build--run)).
+2. Run `HttpTrafficMonitor.exe`, accept the administrator prompt and read the security notice.
+3. Click **Start** — the app installs its local root CA (confirm if Windows asks) and becomes the system proxy.
+4. Open any website or call an API: the requests appear in the grid. Click one to see its headers, body, timing and certificate.
+
+## See it in action
 
 ![Live HTTPS capture: start capturing, requests arrive, one request is inspected](docs/demo/live-capture.gif)
+
+## How it compares
+
+| | HTTP Traffic Monitor | Fiddler Everywhere | Charles | mitmproxy | Browser DevTools |
+|---|---|---|---|---|---|
+| Price | Free, open source (MIT) | Paid subscription | Paid license | Free, open source | Free, part of the browser |
+| Platforms | Windows 10/11 | Windows, macOS, Linux | Windows, macOS, Linux | Windows, macOS, Linux | Wherever the browser runs |
+| Captures traffic of other apps, not just the browser | Yes, system-wide, with the process name | Yes | Yes | Yes | No — only the page it is attached to |
+| Interface | Desktop app | Desktop app | Desktop app | Terminal and web UI | Panel in the browser |
+| MCP server for AI assistants | Built in, free | Built in, Pro tier and up | No | No | No |
+
+Choose this tool when you are on Windows and want a free graphical inspector that an AI assistant can work with. If you need macOS or Linux, or to script the proxy itself, mitmproxy, Charles or Fiddler Everywhere fit better. *(Details of the other tools as of October 2026 — corrections welcome.)*
 
 ## What it does
 
