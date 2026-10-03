@@ -15,10 +15,6 @@
     <None Remove="HttpTrafficMonitor.McpServer\**" />
     <Content Remove="HttpTrafficMonitor.McpServer\**" />
     <EmbeddedResource Remove="HttpTrafficMonitor.McpServer\**" />
-    <Compile Remove="HttpTrafficMonitor.Bot\**" />
-    <None Remove="HttpTrafficMonitor.Bot\**" />
-    <Content Remove="HttpTrafficMonitor.Bot\**" />
-    <EmbeddedResource Remove="HttpTrafficMonitor.Bot\**" />
   </ItemGroup>
 
   <ItemGroup>

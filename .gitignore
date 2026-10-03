@@ -7,8 +7,5 @@ obj/
 *.pfx
 crts/
 runtimes/
-HttpTrafficMonitor.Bot/
-tgmrkt-bot/
-tgmrkt-offer-tool/
 *.py
 nul

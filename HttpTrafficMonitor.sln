@@ -7,8 +7,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HttpTrafficMonitor", "HttpT
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HttpTrafficMonitor.McpServer", "HttpTrafficMonitor.McpServer\HttpTrafficMonitor.McpServer.csproj", "{C61D5931-D61E-4772-8C2C-5EA1FA4E9205}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HttpTrafficMonitor.Bot", "HttpTrafficMonitor.Bot\HttpTrafficMonitor.Bot.csproj", "{999B58F2-6191-4E75-895B-DBB80F96C2B1}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -43,18 +41,6 @@ Global
 		{C61D5931-D61E-4772-8C2C-5EA1FA4E9205}.Release|x64.Build.0 = Release|Any CPU
 		{C61D5931-D61E-4772-8C2C-5EA1FA4E9205}.Release|x86.ActiveCfg = Release|Any CPU
 		{C61D5931-D61E-4772-8C2C-5EA1FA4E9205}.Release|x86.Build.0 = Release|Any CPU
-		{999B58F2-6191-4E75-895B-DBB80F96C2B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{999B58F2-6191-4E75-895B-DBB80F96C2B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{999B58F2-6191-4E75-895B-DBB80F96C2B1}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{999B58F2-6191-4E75-895B-DBB80F96C2B1}.Debug|x64.Build.0 = Debug|Any CPU
-		{999B58F2-6191-4E75-895B-DBB80F96C2B1}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{999B58F2-6191-4E75-895B-DBB80F96C2B1}.Debug|x86.Build.0 = Debug|Any CPU
-		{999B58F2-6191-4E75-895B-DBB80F96C2B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{999B58F2-6191-4E75-895B-DBB80F96C2B1}.Release|Any CPU.Build.0 = Release|Any CPU
-		{999B58F2-6191-4E75-895B-DBB80F96C2B1}.Release|x64.ActiveCfg = Release|Any CPU
-		{999B58F2-6191-4E75-895B-DBB80F96C2B1}.Release|x64.Build.0 = Release|Any CPU
-		{999B58F2-6191-4E75-895B-DBB80F96C2B1}.Release|x86.ActiveCfg = Release|Any CPU
-		{999B58F2-6191-4E75-895B-DBB80F96C2B1}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
