@@ -709,7 +709,7 @@
                                             </Border>
                                         </StackPanel>
 
-                                        <TextBlock Text="n/a: not measured for this request. Plain HTTP has no TLS handshake; mocked, SSL passthrough and loaded requests have no breakdown."
+                                        <TextBlock Text="n/a: not measured for this request. Plain HTTP has no TLS handshake; mocked and SSL passthrough requests, and requests loaded from a session saved by an earlier version, have no breakdown."
                                                    TextWrapping="Wrap" FontSize="11" Margin="0,8,0,0"
                                                    Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
 

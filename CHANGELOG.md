@@ -57,5 +57,6 @@ None yet — no version has been tagged so far. Until the first release, build t
 - MCP server: `add_alert_rule` shows the new rule's name, type, enabled state, pattern and thresholds in its confirmation, as the app stored them; before, only the ID line was filled in.
 - A captured request lists its `Host` header once and its request line ends in `HTTP/1.1`, as the client sent it; before, `Host` appeared twice and the request line read `POST /posts 1.1`. This shows in the Request tab, the Compare window's Req Headers tab and MCP `get_request_details`.
 - curl, HAR and Postman exports no longer list a request line as a header: a `PATCH`, `OPTIONS` or `HEAD` request whose URL holds a colon, such as `?since=10:00`, was exported with a header named after its own request line.
+- A saved session keeps each request's DNS lookup, TCP connect, TLS handshake, time to first byte and download times, so after loading it the Timing tab and MCP `get_request_details` show the same breakdown as before saving; before, only the duration survived. Sessions saved by earlier versions still load, their requests without a breakdown.
 
 [Unreleased]: https://github.com/Makhsum/httptrafficmonitr/commits/main

@@ -32,6 +32,11 @@ namespace HttpTrafficMonitor.Models
         public string? ResponseBody { get; set; }
         public string? ResponseContentType { get; set; }
         public double? DurationMs { get; set; }
+        public double? DnsLookupMs { get; set; }
+        public double? TcpConnectMs { get; set; }
+        public double? TlsHandshakeMs { get; set; }
+        public double? TimeToFirstByteMs { get; set; }
+        public double? ContentDownloadMs { get; set; }
         public bool IsBookmarked { get; set; }
         public string? BookmarkNotes { get; set; }
     }
