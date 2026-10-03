@@ -449,7 +449,11 @@ namespace HttpTrafficMonitor.Services
                 if (e.Certificate != null)
                 {
                     var cert = new X509Certificate2(e.Certificate);
-                    string host = cert.GetNameInfo(X509NameType.DnsName, false) ?? "unknown";
+
+                    // Cached under the host the request asked for, the key the requests look it up by: a
+                    // wildcard or alternative-name certificate names a different host (*.github.com).
+                    string host = e.Session?.HttpClient.Request.Host
+                        ?? cert.GetNameInfo(X509NameType.DnsName, false) ?? "unknown";
 
                     int keySize = 0;
                     try { keySize = cert.PublicKey.GetRSAPublicKey()?.KeySize ?? cert.PublicKey.GetECDsaPublicKey()?.KeySize ?? 0; }
@@ -486,15 +490,6 @@ namespace HttpTrafficMonitor.Services
                     }
 
                     _tlsCertCache[host] = info;
-
-                    // Also cache by the request host header if different
-                    if (e.Certificate is X509Certificate2 c2)
-                    {
-                        foreach (var san in c2.Extensions)
-                        {
-                            // Just cache by Subject CN for lookup
-                        }
-                    }
                 }
             }
             catch { }
