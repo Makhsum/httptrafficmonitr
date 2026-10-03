@@ -42,7 +42,8 @@ namespace HttpTrafficMonitor.Services
                 throw new InvalidDataException("Invalid session file.");
 
             var session = root.ToObject<SessionData>()!;
-            if (session.Settings == null || session.Bookmarks == null || session.Requests.Any(r => r?.Method == null))
+            if (session.Settings == null || session.Bookmarks == null
+                || session.Requests.Any(r => r?.Method == null || (r.TlsInfo != null && r.TlsInfo.Chain == null)))
                 throw new InvalidDataException("Incomplete session file.");
 
             AddRecentSession(path);
