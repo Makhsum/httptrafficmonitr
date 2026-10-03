@@ -103,6 +103,8 @@ namespace HttpTrafficMonitor.Services
                         return $"the status code range {min}-{max} is empty: the minimum {min} is above the maximum {max}" +
                                (rule.StatusCodeMin.HasValue && rule.StatusCodeMax.HasValue ? "" : $" (without statusCodeMin/statusCodeMax a StatusCode rule covers {DefaultStatusCodeMin}-{DefaultStatusCodeMax})") +
                                ", so no status code can match.";
+                    if (max < 100 || min > 999)
+                        return $"the status code range {min}-{max} holds no HTTP status code: status codes have three digits, from 100 to 999.";
                     break;
 
                 case AlertRuleType.ResponseTime:
@@ -124,6 +126,19 @@ namespace HttpTrafficMonitor.Services
                                    ? $"Use '{plain}' instead: it matches every {matched} that contains it."
                                    : $"Leave the wildcard out: the pattern matches every {matched} that contains it.");
                     }
+                    string trimmed = rule.Pattern.Trim();
+                    if (rule.Type == AlertRuleType.Domain && trimmed.Contains('/'))
+                    {
+                        string host = trimmed.Contains("://") ? trimmed[(trimmed.IndexOf("://") + 3)..] : trimmed;
+                        host = host.Split('/')[0];
+                        return $"the pattern '{rule.Pattern}' is matched against the host name only, and no host name contains '/'. " +
+                               (host.Length > 0 ? $"Use '{host}' instead." : "Use the host name alone.");
+                    }
+                    if (rule.Type == AlertRuleType.Process && trimmed.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                        return $"the pattern '{rule.Pattern}' is matched against the process name, which never ends in '.exe'. " +
+                               (trimmed.Length > 4 ? $"Use '{trimmed[..^4]}' instead." : "Use the process name without '.exe'.");
+                    if (rule.Pattern != trimmed)
+                        return $"the pattern '{rule.Pattern}' starts or ends with a space, and no {matched} does. Use '{trimmed}' instead.";
                     break;
 
                 case AlertRuleType.RequestSize:

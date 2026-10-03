@@ -51,7 +51,7 @@ public static class AlertTools
         IpcClient client,
         [Description("Name of the alert rule (required; alert events name the rule that fired)")] string name,
         [Description("Type of alert: StatusCode, ResponseTime, Domain, Process, RequestSize, or ResponseSize")] string type,
-        [Description("Text the host name or process name must contain (required for Domain/Process types). Matched as plain text, not as a wildcard: use 'httpbin.org', not '*.httpbin.org'")] string? pattern = null,
+        [Description("Text the host name or process name must contain (required for Domain/Process types). Matched as plain text, not as a wildcard: use 'httpbin.org', not '*.httpbin.org' or 'https://httpbin.org', and 'curl', not 'curl.exe'")] string? pattern = null,
         [Description("Minimum status code to trigger alert (for StatusCode type, default 400)")] int? statusCodeMin = null,
         [Description("Maximum status code to trigger alert (for StatusCode type, default 599)")] int? statusCodeMax = null,
         [Description("Response time threshold in milliseconds (required for ResponseTime type)")] int? responseTimeThresholdMs = null,
