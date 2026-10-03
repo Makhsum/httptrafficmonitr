@@ -53,6 +53,7 @@ None yet — no version has been tagged so far. Until the first release, build t
 - The Compare window shows every line of a diff on the dark theme; before, the unchanged lines were white text on a white list, so only the changed lines could be made out.
 - MCP server: `load_session` reports how many requests the app restored, the same number as the grid and status bar; before, it always said `Requests loaded: 0`.
 - A HAR export lists each request's DNS lookup, connect, TLS handshake, wait and download times as the Timing tab shows them; before, the whole duration was written as server wait. A phase that was not measured is written as `-1`, the HAR format's "not available".
+- A HAR export carries every field HAR 1.2 requires (`cookies`, `redirectURL`, no empty `postData`), so stricter HAR viewers such as the perf-cascade waterfall open it instead of failing.
 - MCP server: `add_alert_rule` shows the new rule's name, type, enabled state, pattern and thresholds in its confirmation, as the app stored them; before, only the ID line was filled in.
 
 [Unreleased]: https://github.com/Makhsum/httptrafficmonitr/commits/main

@@ -113,10 +113,9 @@ namespace HttpTrafficMonitor.Services
                 var reqHeaders = HttpReplayService.ParseHeaders(e.RequestHeaders)
                     .Select(h => new { name = h.Key, value = h.Value }).ToArray();
 
-                var respHeaders = e.ResponseHeaders != null
-                    ? HttpReplayService.ParseHeaders(e.ResponseHeaders)
-                        .Select(h => new { name = h.Key, value = h.Value }).ToArray()
-                    : Array.Empty<object>();
+                var respHeaderDict = HttpReplayService.ParseHeaders(e.ResponseHeaders ?? "");
+                var respHeaders = respHeaderDict
+                    .Select(h => new { name = h.Key, value = h.Value }).ToArray();
 
                 // HAR marks a phase that was not measured with -1 and counts the TLS handshake inside connect
                 double dns = e.DnsLookupMs ?? -1;
@@ -143,13 +142,15 @@ namespace HttpTrafficMonitor.Services
                         method = e.Method,
                         url = e.Url,
                         httpVersion = "HTTP/1.1",
+                        // cookies and redirectURL are required by HAR 1.2; stricter viewers refuse an entry without them
+                        cookies = Array.Empty<object>(),
                         headers = reqHeaders,
                         queryString = Array.Empty<object>(),
                         headersSize = -1,
                         bodySize = e.RequestBody?.Length ?? 0,
                         postData = string.IsNullOrEmpty(e.RequestBody) ? null : new
                         {
-                            mimeType = e.RequestContentType,
+                            mimeType = e.RequestContentType ?? "",
                             text = e.RequestBody
                         }
                     },
@@ -158,6 +159,7 @@ namespace HttpTrafficMonitor.Services
                         status = e.StatusCode ?? 0,
                         statusText = "",
                         httpVersion = "HTTP/1.1",
+                        cookies = Array.Empty<object>(),
                         headers = respHeaders,
                         content = new
                         {
@@ -165,6 +167,7 @@ namespace HttpTrafficMonitor.Services
                             mimeType = e.ResponseContentType ?? "",
                             text = e.ResponseBody ?? ""
                         },
+                        redirectURL = respHeaderDict.TryGetValue("Location", out var location) ? location : "",
                         headersSize = -1,
                         bodySize = e.ResponseSize ?? 0
                     },
@@ -192,7 +195,9 @@ namespace HttpTrafficMonitor.Services
                 }
             };
 
-            return JsonConvert.SerializeObject(har, Formatting.Indented);
+            // HAR leaves out a request's postData when there is none; null is not a valid postData
+            return JsonConvert.SerializeObject(har, Formatting.Indented,
+                new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
         }
     }
 }
