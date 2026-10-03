@@ -273,8 +273,8 @@ namespace HttpTrafficMonitor.Services
                     IsWebSocket = isWebSocket,
                 };
 
-                // Attach TLS certificate info if HTTPS
-                if (e.HttpClient.Request.IsHttps && _tlsCertCache.TryGetValue(host, out var tlsInfo))
+                // Attach TLS certificate info if HTTPS; a mocked request never reaches the server, so it has none.
+                if (matchingRule == null && e.HttpClient.Request.IsHttps && _tlsCertCache.TryGetValue(host, out var tlsInfo))
                     entry.TlsInfo = tlsInfo;
 
                 e.UserData = entry;

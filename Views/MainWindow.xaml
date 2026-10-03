@@ -780,7 +780,7 @@
                                                     <Run Text="{Binding SelectedRequest.TlsInfo.KeySize, Mode=OneWay}"/><Run Text=" bits"/>
                                                 </TextBlock>
                                             </Grid>
-                                            <TextBlock Text="n/a: not known for this request, for example a mocked request or one whose response never arrived."
+                                            <TextBlock Text="n/a: not known for this request, for example one whose response never arrived."
                                                        TextWrapping="Wrap" FontSize="11" Margin="0,0,0,12"
                                                        Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
 
