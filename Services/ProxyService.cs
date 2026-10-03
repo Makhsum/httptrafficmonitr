@@ -197,22 +197,25 @@ namespace HttpTrafficMonitor.Services
 
         private async Task OnBeforeRequest(object sender, SessionEventArgs e)
         {
-            if (_isPaused) return;
-
             try
             {
-                string host = e.HttpClient.Request.Host ?? string.Empty;
-                if (ExcludedDomains.Any(d => host.Contains(d, StringComparison.OrdinalIgnoreCase)))
-                    return;
-
-                string processName = GetProcessName(e);
-                if (ExcludedProcesses.Contains(processName))
-                    return;
-
                 // Auto-responder check
                 var matchingRule = AutoResponderEnabled
                     ? AutoResponderRules.FirstOrDefault(r => r.Matches(e.HttpClient.Request.Url, e.HttpClient.Request.Method))
                     : null;
+
+                string host = e.HttpClient.Request.Host ?? string.Empty;
+                string processName = GetProcessName(e);
+
+                // Pausing and excluding only keep a request out of the grid; a matching rule still answers it.
+                if (_isPaused
+                    || ExcludedDomains.Any(d => host.Contains(d, StringComparison.OrdinalIgnoreCase))
+                    || ExcludedProcesses.Contains(processName))
+                {
+                    if (matchingRule != null)
+                        await HandleAutoResponse(e, matchingRule, null);
+                    return;
+                }
 
                 int id = Interlocked.Increment(ref _requestCounter);
                 string requestBody = string.Empty;
@@ -443,7 +446,8 @@ namespace HttpTrafficMonitor.Services
             return Task.CompletedTask;
         }
 
-        private async Task HandleAutoResponse(SessionEventArgs e, AutoResponderRule rule, HttpRequestEntry entry)
+        // entry is null for a request that is not captured.
+        private async Task HandleAutoResponse(SessionEventArgs e, AutoResponderRule rule, HttpRequestEntry? entry)
         {
             try
             {
@@ -470,6 +474,8 @@ namespace HttpTrafficMonitor.Services
 
                 e.GenericResponse(body, (HttpStatusCode)rule.ResponseStatusCode, headers, true);
                 rule.MatchCount++;
+
+                if (entry == null) return;
 
                 // BeforeResponse is not raised for a response set here, so the entry is completed now.
                 var response = e.HttpClient.Response;
