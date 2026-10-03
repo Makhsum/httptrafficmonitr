@@ -289,7 +289,7 @@ namespace HttpTrafficMonitor.Services
 
         private async Task OnBeforeResponse(object sender, SessionEventArgs e)
         {
-            if (_isPaused) return;
+            // Only a request captured before a pause carries an entry, and it is completed even while paused.
             if (e.UserData is not HttpRequestEntry entry) return;
 
             try
