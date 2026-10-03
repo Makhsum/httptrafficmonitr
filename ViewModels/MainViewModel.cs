@@ -650,11 +650,7 @@ namespace HttpTrafficMonitor.ViewModels
 
         private static void ExportToCsv(string path, List<HttpRequestEntry> entries)
         {
-            var sb = new StringBuilder();
-            sb.AppendLine("Id,Timestamp,Process,PID,Method,URL,Host,StatusCode,ResponseSize,Duration(ms)");
-            foreach (var e in entries)
-                sb.AppendLine($"{e.Id},{e.Timestamp:O},\"{e.ProcessName}\",{e.ProcessId},{e.Method},\"{e.Url}\",\"{e.Host}\",{e.StatusCode},{e.ResponseSize},{e.Duration?.TotalMilliseconds:F0}");
-            File.WriteAllText(path, sb.ToString());
+            File.WriteAllText(path, ExportService.ToCsv(entries));
         }
 
         public void Dispose()

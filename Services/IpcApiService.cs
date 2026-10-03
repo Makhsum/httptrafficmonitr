@@ -954,12 +954,8 @@ namespace HttpTrafficMonitor.Services
             var body = ReadBody<ExportIdsDto>(request);
             var entries = GetRequestsByIds(body.RequestIds);
 
-            var sb = new StringBuilder();
-            sb.AppendLine("Id,Timestamp,Process,PID,Method,URL,Host,StatusCode,ResponseSize,Duration(ms)");
-            foreach (var e in entries)
-                sb.AppendLine($"{e.Id},{e.Timestamp:O},\"{e.ProcessName}\",{e.ProcessId},{e.Method},\"{e.Url}\",\"{e.Host}\",{e.StatusCode},{e.ResponseSize},{e.Duration?.TotalMilliseconds:F0}");
-
-            WriteJson(response, new { csv = sb.ToString() });
+            string csv = ExportService.ToCsv(entries);
+            WriteJson(response, new { csv });
         }
 
         // ======================= SESSIONS =======================

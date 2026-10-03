@@ -43,5 +43,7 @@ None yet — no version has been tagged so far. Until the first release, build t
 - MCP server: `export_as_csv` and `export_as_curl` return the CSV text and the curl command themselves instead of the app's escaped JSON reply; `export_as_curl` says when a request does not exist.
 - MCP server: `get_request_tls_info` says when a request was sent over plain HTTP or has no TLS details, instead of asking whether the app is running.
 - An exported or copied cURL command no longer carries the captured `Content-Length`, which cut off the formatted request body when the command was run.
+- An exported or copied cURL command runs as pasted: quotes in the URL and header values are escaped, a HEAD request uses `-I` instead of waiting for a body, and `--compressed` is added when the request accepted a compressed response.
+- A CSV export writes a quote inside a URL, host or process name twice, so a URL such as `?q="a,b"` no longer splits its row into an extra column.
 
 [Unreleased]: https://github.com/Makhsum/httptrafficmonitr/commits/main

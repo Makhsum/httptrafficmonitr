@@ -13,7 +13,10 @@ namespace HttpTrafficMonitor.Services
         public static string ToCurl(HttpRequestEntry entry)
         {
             var sb = new StringBuilder();
-            sb.Append($"curl -X {entry.Method} '{entry.Url}'");
+            // curl -X HEAD waits for a body that never comes; -I sends a real HEAD request
+            sb.Append(entry.Method == "HEAD"
+                ? $"curl -I {ShellQuote(entry.Url)}"
+                : $"curl -X {entry.Method} {ShellQuote(entry.Url)}");
 
             var headers = HttpReplayService.ParseHeaders(entry.RequestHeaders);
             foreach (var (key, value) in headers)
@@ -21,17 +24,32 @@ namespace HttpTrafficMonitor.Services
                 if (key.Equals("Host", StringComparison.OrdinalIgnoreCase)) continue;
                 // curl sets the length of the body it sends; the captured one may not match the formatted body
                 if (key.Equals("Content-Length", StringComparison.OrdinalIgnoreCase)) continue;
-                sb.Append($" \\\n  -H '{key}: {value}'");
+                sb.Append($" \\\n  -H {ShellQuote($"{key}: {value}")}");
             }
 
+            // Without --compressed curl prints a gzip/deflate/br response as raw bytes
+            if (headers.ContainsKey("Accept-Encoding"))
+                sb.Append(" \\\n  --compressed");
+
             if (!string.IsNullOrEmpty(entry.RequestBody) && entry.Method != "GET" && entry.Method != "HEAD")
-            {
-                string escaped = entry.RequestBody.Replace("'", "'\\''");
-                sb.Append($" \\\n  -d '{escaped}'");
-            }
+                sb.Append($" \\\n  -d {ShellQuote(entry.RequestBody)}");
 
             return sb.ToString();
         }
+
+        public static string ToCsv(IEnumerable<HttpRequestEntry> entries)
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("Id,Timestamp,Process,PID,Method,URL,Host,StatusCode,ResponseSize,Duration(ms)");
+            foreach (var e in entries)
+                sb.AppendLine($"{e.Id},{e.Timestamp:O},{CsvQuote(e.ProcessName)},{e.ProcessId},{e.Method},{CsvQuote(e.Url)},{CsvQuote(e.Host)},{e.StatusCode},{e.ResponseSize},{e.Duration?.TotalMilliseconds:F0}");
+            return sb.ToString();
+        }
+
+        private static string ShellQuote(string value) => $"'{value.Replace("'", "'\\''")}'";
+
+        // A quote inside a quoted CSV field is written twice, or it ends the field early
+        private static string CsvQuote(string value) => $"\"{value.Replace("\"", "\"\"")}\"";
 
         public static string ToPostmanCollection(IEnumerable<HttpRequestEntry> entries, string collectionName = "Exported Collection")
         {
