@@ -33,8 +33,8 @@ namespace HttpTrafficMonitor.Services
         private readonly Dictionary<int, string> _processNameCache = new();
         private DateTime _lastCacheClear = DateTime.UtcNow;
 
-        // TLS certificate cache per host
-        private readonly ConcurrentDictionary<string, TlsCertificateInfo> _tlsCertCache = new();
+        // TLS certificate cache per host; host names are case-insensitive (Docs.GitHub.com = docs.github.com)
+        private readonly ConcurrentDictionary<string, TlsCertificateInfo> _tlsCertCache = new(StringComparer.OrdinalIgnoreCase);
 
         public const int ProxyPort = 18080;
         public const int SlowRequestThresholdMs = 3000;
