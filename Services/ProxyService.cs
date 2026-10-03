@@ -121,6 +121,7 @@ namespace HttpTrafficMonitor.Services
 
                 _proxyServer.BeforeRequest += OnBeforeRequest;
                 _proxyServer.BeforeResponse += OnBeforeResponse;
+                _proxyServer.AfterResponse += OnAfterResponse;
                 _proxyServer.ServerCertificateValidationCallback += OnServerCertificateValidation;
                 _proxyServer.ExceptionFunc = OnProxyException;
 
@@ -180,6 +181,7 @@ namespace HttpTrafficMonitor.Services
                     _explicitEndPoint.BeforeTunnelConnectRequest -= OnBeforeTunnelConnectRequest;
                 _proxyServer.BeforeRequest -= OnBeforeRequest;
                 _proxyServer.BeforeResponse -= OnBeforeResponse;
+                _proxyServer.AfterResponse -= OnAfterResponse;
                 _proxyServer.ServerCertificateValidationCallback -= OnServerCertificateValidation;
                 _proxyServer.Stop();
             }
@@ -346,6 +348,61 @@ namespace HttpTrafficMonitor.Services
             {
                 ErrorOccurred?.Invoke($"Error capturing response: {ex.Message}");
             }
+        }
+
+        // AfterResponse is also raised when the session failed, for example because the server could not
+        // be reached; BeforeResponse never ran for it, so the entry is completed as failed here.
+        private Task OnAfterResponse(object sender, SessionEventArgs e)
+        {
+            if (e.Exception == null) return Task.CompletedTask;
+            if (e.UserData is not HttpRequestEntry entry || entry.IsComplete) return Task.CompletedTask;
+
+            try
+            {
+                // The proxy is the gateway that got no answer, so the request counts as 502 Bad Gateway.
+                entry.StatusCode = (int)HttpStatusCode.BadGateway;
+                entry.ResponseSize = 0;
+                entry.ResponseBody = $"[Request failed: {DescribeFailure(e)}]";
+                entry.ResponseTime = DateTime.Now;
+                entry.Duration = entry.ResponseTime.Value - entry.Timestamp;
+
+                if (entry.Duration.Value.TotalMilliseconds > SlowRequestThresholdMs)
+                    entry.IsSlow = true;
+
+                entry.IsComplete = true;
+                ResponseUpdated?.Invoke(entry);
+            }
+            catch (Exception ex)
+            {
+                ErrorOccurred?.Invoke($"Error capturing response: {ex.Message}");
+            }
+            return Task.CompletedTask;
+        }
+
+        private string DescribeFailure(SessionEventArgs e)
+        {
+            var uri = e.HttpClient.Request.RequestUri;
+            Exception innermost = e.Exception!;
+            for (Exception? ex = e.Exception; ex != null; ex = ex.InnerException)
+            {
+                if (ex is SocketException { SocketErrorCode: SocketError.HostNotFound or SocketError.NoData or SocketError.TryAgain }
+                    || ex.Message.StartsWith("Could not resolve the hostname ", StringComparison.Ordinal))
+                    return $"the host name {uri.Host} could not be resolved";
+
+                // Titanium drops the socket error of a failed connect, so only the time it took tells a
+                // refused connection from one that was never answered.
+                if (ex.Message.StartsWith("Could not establish connection to ", StringComparison.Ordinal))
+                {
+                    int timeoutSeconds = _proxyServer?.ConnectTimeOutSeconds ?? 20;
+                    bool timedOut = e.TimeLine.TryGetValue("Dns Resolved", out var dnsResolved)
+                        && DateTime.UtcNow - dnsResolved >= TimeSpan.FromSeconds(timeoutSeconds);
+                    return timedOut
+                        ? $"{uri.Host}:{uri.Port} did not accept the connection within {timeoutSeconds} seconds"
+                        : $"{uri.Host}:{uri.Port} refused the connection";
+                }
+                innermost = ex;
+            }
+            return innermost.Message;
         }
 
         // Titanium stamps each step of a session in UTC; the phases are the gaps between those stamps.
