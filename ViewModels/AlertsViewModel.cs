@@ -22,6 +22,7 @@ namespace HttpTrafficMonitor.ViewModels
         private int _newStatusMax = 599;
         private int _newTimeThreshold = 5000;
         private long _newSizeThreshold = 1048576;
+        private string? _newRuleError;
 
         public ObservableCollection<AlertRule> Rules => _alertService.Rules;
         public ObservableCollection<AlertEvent> AlertEvents { get; } = new();
@@ -37,12 +38,14 @@ namespace HttpTrafficMonitor.ViewModels
         }
 
         public string NewRuleName { get => _newRuleName; set => SetProperty(ref _newRuleName, value); }
-        public AlertRuleType NewRuleType { get => _newRuleType; set => SetProperty(ref _newRuleType, value); }
-        public string NewRulePattern { get => _newRulePattern; set => SetProperty(ref _newRulePattern, value); }
+        public AlertRuleType NewRuleType { get => _newRuleType; set { if (SetProperty(ref _newRuleType, value)) NewRuleError = null; } }
+        public string NewRulePattern { get => _newRulePattern; set { if (SetProperty(ref _newRulePattern, value)) NewRuleError = null; } }
         public int NewStatusMin { get => _newStatusMin; set => SetProperty(ref _newStatusMin, value); }
         public int NewStatusMax { get => _newStatusMax; set => SetProperty(ref _newStatusMax, value); }
         public int NewTimeThreshold { get => _newTimeThreshold; set => SetProperty(ref _newTimeThreshold, value); }
         public long NewSizeThreshold { get => _newSizeThreshold; set => SetProperty(ref _newSizeThreshold, value); }
+        // Why the last Add was refused, or null when there is nothing to say
+        public string? NewRuleError { get => _newRuleError; set => SetProperty(ref _newRuleError, value); }
 
         public AlertRuleType[] RuleTypes => Enum.GetValues<AlertRuleType>();
 
@@ -90,7 +93,16 @@ namespace HttpTrafficMonitor.ViewModels
                 SizeThresholdBytes = NewSizeThreshold,
                 PlaySound = SoundEnabled
             };
+
+            string? cannotFire = AlertService.FindWhyRuleCannotFire(rule);
+            if (cannotFire != null)
+            {
+                NewRuleError = $"Rule not added: {cannotFire}";
+                return;
+            }
+
             _alertService.Rules.Add(rule);
+            NewRuleError = null;
             NewRuleName = string.Empty;
             NewRulePattern = string.Empty;
         }

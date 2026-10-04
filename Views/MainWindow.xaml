@@ -1084,6 +1084,7 @@
                                                            Foreground="{DynamicResource TextFillColorTertiaryBrush}"/>
                                                 <ComboBox ItemsSource="{Binding AlertsVm.RuleTypes}"
                                                           SelectedItem="{Binding AlertsVm.NewRuleType}"
+                                                          AutomationProperties.AutomationId="Alerts.NewRuleTypeComboBox"
                                                           Width="120"/>
                                             </StackPanel>
                                             <StackPanel Margin="0,0,8,4">
@@ -1102,6 +1103,11 @@
                                                        AutomationProperties.AutomationId="Alerts.RemoveRuleButton"
                                                        VerticalAlignment="Bottom" Margin="0,0,0,4"/>
                                         </WrapPanel>
+                                        <TextBlock Text="{Binding AlertsVm.NewRuleError}"
+                                                   Visibility="{Binding AlertsVm.NewRuleError, Converter={StaticResource NullToVisibility}}"
+                                                   AutomationProperties.AutomationId="Alerts.NewRuleErrorText"
+                                                   Foreground="{DynamicResource SystemFillColorCriticalBrush}"
+                                                   TextWrapping="Wrap" FontSize="11" Margin="0,2,0,0"/>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
