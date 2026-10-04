@@ -431,6 +431,7 @@ namespace HttpTrafficMonitor.ViewModels
                 ExcludedDomainsText = session.Settings.ExcludedDomains;
                 ExcludedProcessesText = session.Settings.ExcludedProcesses;
                 SslPassthroughDomainsText = session.Settings.SslPassthroughDomains ?? string.Empty;
+                if (session.Settings.AlertRules != null) _alertService.ReplaceRules(session.Settings.AlertRules);
                 RefreshRecentSessions();
                 StatusMessage = $"Loaded session: {entries.Count} requests from {session.SavedAt:g}";
             }

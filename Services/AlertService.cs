@@ -168,5 +168,13 @@ namespace HttpTrafficMonitor.Services
                 IsEnabled = false
             });
         }
+
+        // Puts the rules of a loaded session in place of the current ones
+        public void ReplaceRules(IEnumerable<AlertRule> rules)
+        {
+            Rules.Clear();
+            foreach (var rule in rules)
+                Rules.Add(rule);
+        }
     }
 }

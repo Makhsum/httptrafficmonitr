@@ -1086,6 +1086,7 @@ namespace HttpTrafficMonitor.Services
                 _vm.ExcludedDomainsText = session.Settings.ExcludedDomains;
                 _vm.ExcludedProcessesText = session.Settings.ExcludedProcesses;
                 _vm.SslPassthroughDomainsText = session.Settings.SslPassthroughDomains ?? string.Empty;
+                if (session.Settings.AlertRules != null) _vm.AlertServiceInstance.ReplaceRules(session.Settings.AlertRules);
                 _vm.StatusMessage = $"Loaded session: {entries.Count} requests from {session.SavedAt:g}";
                 return entries.Count;
             });
