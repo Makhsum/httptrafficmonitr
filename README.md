@@ -33,6 +33,15 @@ For developers and testers on Windows who need to see what an app, a service or 
 
 Choose this tool when you are on Windows and want a free graphical inspector that an AI assistant can work with. If you need macOS or Linux, or to script the proxy itself, mitmproxy, Charles or Fiddler Everywhere fit better. *(Details of the other tools as of October 2026 — corrections welcome.)*
 
+## Download
+
+Get the latest build from [**Releases**](https://github.com/Makhsum/httptrafficmonitr/releases/latest) — Windows 10/11 x64, nothing else to install (the .NET runtime is included):
+
+- `HttpTrafficMonitor-<version>-win-x64.zip` — the desktop app. Unzip it and run `HttpTrafficMonitor\HttpTrafficMonitor.exe` (it asks for administrator rights).
+- `HttpTrafficMonitor.McpServer-<version>-win-x64.zip` — the MCP server as a single `HttpTrafficMonitor.McpServer.exe`; see [Configuring the MCP server](#configuring-the-mcp-server).
+
+The builds are not code-signed, so Windows SmartScreen may warn on first start: choose **More info**, then **Run anyway**.
+
 ## What it does
 
 `HttpTrafficMonitor` sits between your machine and the internet as a local proxy (via [Titanium.Web.Proxy](https://github.com/justcoding121/Titanium-Web-Proxy)), decrypts HTTPS on the fly with a locally-generated root CA, and shows every request/response as it happens — searchable, filterable, and exportable.
@@ -115,7 +124,26 @@ Add it to an MCP-capable client (e.g. Claude Code / Claude Desktop) pointing at 
 
 ### Configuring the MCP server
 
-Build it first:
+**From a release download** — unzip `HttpTrafficMonitor.McpServer-<version>-win-x64.zip` anywhere (e.g. `C:\Tools`) and point your client at the exe; no build and no .NET install needed:
+
+```
+claude mcp add httptrafficmonitor -- "C:\Tools\HttpTrafficMonitor.McpServer\HttpTrafficMonitor.McpServer.exe"
+```
+
+For Claude Desktop, add this to `%APPDATA%\Claude\claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "httptrafficmonitor": {
+      "command": "C:\\Tools\\HttpTrafficMonitor.McpServer\\HttpTrafficMonitor.McpServer.exe",
+      "args": []
+    }
+  }
+}
+```
+
+**From source** — build it first:
 
 ```
 dotnet build HttpTrafficMonitor.McpServer/HttpTrafficMonitor.McpServer.csproj -c Debug
@@ -191,7 +219,7 @@ After editing the config, restart Claude Code / Claude Desktop, launch `HttpTraf
 ## Requirements
 
 - Windows 10/11
-- [.NET 8 SDK](https://dotnet.microsoft.com/download) (`net8.0-windows`, WPF)
+- [.NET 8 SDK](https://dotnet.microsoft.com/download) (`net8.0-windows`, WPF) — only to build from source; the [release downloads](#download) bring their own runtime
 - **Administrator privileges** — the app requests elevation via its manifest (`app.manifest`, `requireAdministrator`), needed to register itself as the system proxy and install the local root CA
 
 > ⚠️ HTTPS interception installs a root CA into your system trust store and lets the app read HTTPS traffic in plaintext. Use it only for development/debugging on machines you control — the app shows a warning dialog on first launch and restores your original proxy settings when you stop monitoring or close it.

@@ -6,9 +6,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## Released versions
 
-None yet — no version has been tagged so far. Until the first release, build the app from source as described in [CONTRIBUTING.md](CONTRIBUTING.md#build-and-run-from-a-fresh-clone); everything on `main` is listed under **Unreleased** below.
+- [0.1.0](https://github.com/Makhsum/httptrafficmonitr/releases/tag/v0.1.0) — 2026-10-04, the first release.
 
 ## [Unreleased]
+
+## [0.1.0] - 2026-10-04
 
 ### Added
 
@@ -64,4 +66,5 @@ None yet — no version has been tagged so far. Until the first release, build t
 - Loading a saved session brings back the alert rules it was saved with, so the Alerts tab and MCP `get_alert_rules` list them with their type and thresholds again and they fire on new traffic; before, only the requests, exclusions and SSL passthrough domains came back and the rules in place stayed. Sessions saved by earlier versions hold their alert rules too and bring them back the same way.
 - The Alerts tab refuses a rule that could never fire and says below the Add button what is wrong and what to use instead: a `Domain` or `Process` rule without a pattern, a pattern like `*.example.com`, which is matched as plain text and so never as a wildcard, a pattern with a leading or trailing space, a `Domain` pattern with a scheme or path such as `http://example.com/api`, or a `Process` pattern ending in `.exe`; before, the rule was added without a word and stayed silent on the traffic it was meant to catch. It is the same check MCP `add_alert_rule` applies. A `StatusCode`, `ResponseTime`, `RequestSize` or `ResponseSize` rule with a pattern is refused as well, because these rules do not read the pattern: one named for `404` with the pattern `404` watched status codes `500`–`599` and stayed silent on a 404; the message names what such a rule watches.
 
-[Unreleased]: https://github.com/Makhsum/httptrafficmonitr/commits/main
+[Unreleased]: https://github.com/Makhsum/httptrafficmonitr/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Makhsum/httptrafficmonitr/releases/tag/v0.1.0
