@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
+using HttpTrafficMonitor.Helpers;
 using HttpTrafficMonitor.Models;
 using HttpTrafficMonitor.Services;
 
@@ -98,6 +99,22 @@ namespace HttpTrafficMonitor.ViewModels
             if (cannotFire != null)
             {
                 NewRuleError = $"Rule not added: {cannotFire}";
+                return;
+            }
+
+            // Only Domain and Process rules read the pattern; the others would quietly watch the form's fixed values instead
+            string? watched = rule.Type switch
+            {
+                AlertRuleType.StatusCode => $"status codes {NewStatusMin}-{NewStatusMax}",
+                AlertRuleType.ResponseTime => $"responses slower than {NewTimeThreshold} ms",
+                AlertRuleType.RequestSize => $"request bodies larger than {FormatHelper.FormatSize(NewSizeThreshold)}",
+                AlertRuleType.ResponseSize => $"responses larger than {FormatHelper.FormatSize(NewSizeThreshold)}",
+                _ => null
+            };
+            if (watched != null && !string.IsNullOrWhiteSpace(NewRulePattern))
+            {
+                NewRuleError = $"Rule not added: a {rule.Type} rule does not use the pattern '{NewRulePattern}'; it watches {watched}. " +
+                               "Leave Pattern empty to add it.";
                 return;
             }
 
