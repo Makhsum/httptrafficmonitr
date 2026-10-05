@@ -301,6 +301,14 @@ namespace HttpTrafficMonitor.Services
                 + @"(?<value>(?:(?!\r?\n--)[\s\S])+)",
             RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Compiled);
 
+        // The same inside a JSON string, as a request inspector echoes the raw body, "data": "--boundary\r\nContent-Disposition:
+        // form-data; name=\"password\"\r\n\r\nvalue\r\n--boundary--"; the line breaks arrive escaped, and the value
+        // ends at the next boundary line or at the end of the string
+        private static readonly Regex EscapedMultipartCredentialPart = new(
+            @"(?<name>(?<=(?<!\\)\\n)Content-Disposition:[ \t]*form-data[ \t]*;[ \t]*name=(?<quote>(?:\\"")?)(?:" + string.Join("|", CredentialFields.Select(Regex.Escape)) + "|" + PasswordLikeField + @")\k<quote>[ \t]*;?[ \t]*(?:\\r)?\\n(?:(?:[^""\\]|\\[^rn])+(?:\\r)?\\n)*(?:\\r)?\\n)"
+                + @"(?<value>(?:(?!(?:\\r)?\\n--)(?:[^""\\]|\\.))+)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         // A credential a service carries as a URL path segment: a Telegram bot token (/bot123456:AAE.../getUpdates,
         // also /file/bot.../), the secret of a Slack or Discord webhook URL; host and endpoint stay readable.
         // Matched by the path alone, since a request line (GET /bot.../getMe HTTP/1.1) has no host in front of it.
@@ -443,6 +451,8 @@ namespace HttpTrafficMonitor.Services
                 m.Groups["name"].Value + EscapedJsonCookieListValue.Replace(m.Groups["value"].Value, p =>
                     p.Groups["name"].Value + (p.Groups["value"].Value == "\\\"\\\"" ? "\\\"\\\"" : "\\\"" + Marker + "\\\"")));
             redacted = MultipartCredentialPart.Replace(redacted, m =>
+                m.Groups["name"].Value + Marker);
+            redacted = EscapedMultipartCredentialPart.Replace(redacted, m =>
                 m.Groups["name"].Value + Marker);
             redacted = QuotedTwicePlaceholder.Replace(redacted, m =>
             {
