@@ -218,14 +218,14 @@ namespace HttpTrafficMonitor.Services
 
         // A header block held in one JSON string, "headers": "Authorization: Bearer value\nAccept: */*", as a Postman v1 collection
         // or a logged request keeps it, also one "Name: value" string of a list; a line starts at the opening quote or after
-        // an escaped line break and ends at the next escaped line break or at the closing quote
+        // an escaped line break, also indented by escaped tabs ("\n\tAuthorization: ..."), and ends at the next escaped line break or at the closing quote
         private static readonly Regex JsonHeaderTextLine = new(
-            @"(?<=(?<!\\)""|(?<!\\)\\[rn])(?<name>[ \t]*(?:" + CredentialHeaderNames + @")[ \t]*:[ \t]*)(?<value>(?:[^""\\]|\\[^rn])*)",
+            @"(?<=(?<!\\)""(?:\\t)*|(?<!\\)\\[rn](?:\\t)*)(?<name>[ \t]*(?:" + CredentialHeaderNames + @")[ \t]*:[ \t]*)(?<value>(?:[^""\\]|\\[^rn])*)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // The same inside a JSON string, \"headers\": \"Authorization: Bearer value\\nAccept: */*\"
         private static readonly Regex EscapedJsonHeaderTextLine = new(
-            @"(?<=\\""|\\\\[rn])(?<name>[ \t]*(?:" + CredentialHeaderNames + @")[ \t]*:[ \t]*)(?<value>(?:\\\\\\.|\\\\[^""\\rn]|\\[^""\\]|[^""\\])*)",
+            @"(?<=\\""(?:\\\\t)*|\\\\[rn](?:\\\\t)*)(?<name>[ \t]*(?:" + CredentialHeaderNames + @")[ \t]*:[ \t]*)(?<value>(?:\\\\\\.|\\\\[^""\\rn]|\\[^""\\]|[^""\\])*)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // The auth block of a Postman collection lists its credentials as key/value entries, "bearer": [{"key": "token", "value": "value"}],
