@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json;
 
 namespace HttpTrafficMonitor.Services
 {
@@ -313,6 +316,20 @@ namespace HttpTrafficMonitor.Services
         // the comma inside "Expires=Wed, 21 Oct 2026" is not followed by a name=value pair
         private static readonly Regex JoinedSetCookies = new(@",\s*(?=[^;,=\s]+=)", RegexOptions.Compiled);
 
+        // A JSON string that holds a JSON string of its own, as an echo service quotes a request body that already carried
+        // JSON as a string: {"received": "{\"echoOf\": \"{\\\"Authorization\\\": \\\"Bearer value\\\"}\"}"}. The rules above
+        // see the body and one quoting level; such a string is unquoted once and redacted on its own, which reaches the
+        // next level the same way, and only quoted back when it lost a value. A quote that opens it follows an even run of backslashes
+        private static readonly Regex JsonStringQuotedTwice = new(
+            @"(?<=(?:^|[^\\])(?:\\\\)*)""(?<text>(?:[^""\\]|\\.)*)""",
+            RegexOptions.Compiled);
+
+        private const string QuoteTwoLevelsDeep = @"\\\""";
+
+        // Such a string waits behind a placeholder while the other rules run, since they would read its second level
+        // as the first: a header text there would lose every line after the Authorization line
+        private static readonly Regex QuotedTwicePlaceholder = new("\"\u0001(?<index>\\d{1,9})\u0001\"", RegexOptions.Compiled);
+
         private readonly bool _revealCredentials;
 
         public CredentialRedactor(bool revealCredentials)
@@ -329,7 +346,9 @@ namespace HttpTrafficMonitor.Services
         {
             if (_revealCredentials || string.IsNullOrEmpty(text)) return text;
 
-            string redacted = CredentialHeaderLine.Replace(text, m =>
+            var quotedTwice = new List<string>();
+            string redacted = JsonStringQuotedTwice.Replace(text, m => RedactQuotedTwice(m, quotedTwice));
+            redacted = CredentialHeaderLine.Replace(redacted, m =>
                 m.Groups["name"].Value + RedactHeaderValue(m.Groups["name"].Value.Trim().TrimEnd(':').Trim(), m.Groups["value"].Value));
             redacted = UrlEncodedCredentialField.Replace(redacted, m =>
                 m.Groups["name"].Value + Marker);
@@ -423,12 +442,41 @@ namespace HttpTrafficMonitor.Services
                     p.Groups["name"].Value + (p.Groups["value"].Value == "\\\"\\\"" ? "\\\"\\\"" : "\\\"" + Marker + "\\\"")));
             redacted = MultipartCredentialPart.Replace(redacted, m =>
                 m.Groups["name"].Value + Marker);
+            redacted = QuotedTwicePlaceholder.Replace(redacted, m =>
+            {
+                int index = int.Parse(m.Groups["index"].Value);
+                return index < quotedTwice.Count ? quotedTwice[index] : m.Value;
+            });
 
             if (redacted != text) RedactedAny = true;
             return redacted;
         }
 
         public string? RedactOrNull(string? text) => text == null ? null : Redact(text);
+
+        // Unquotes the string once, redacts what it holds and quotes it back, then hands it on as a placeholder;
+        // a string that holds no second quoting level, or that is no valid JSON string, stays as it is
+        private string RedactQuotedTwice(Match m, List<string> quotedTwice)
+        {
+            string text = m.Groups["text"].Value;
+            if (!text.Contains(QuoteTwoLevelsDeep)) return m.Value;
+
+            string? unquoted;
+            try
+            {
+                using var reader = new JsonTextReader(new StringReader("\"" + text + "\"")) { DateParseHandling = DateParseHandling.None };
+                unquoted = reader.Read() ? reader.Value as string : null;
+            }
+            catch (JsonReaderException)
+            {
+                return m.Value;
+            }
+            if (unquoted == null) return m.Value;
+
+            string redacted = Redact(unquoted);
+            quotedTwice.Add(redacted == unquoted ? m.Value : JsonConvert.ToString(redacted));
+            return "\"\u0001" + (quotedTwice.Count - 1) + "\u0001\"";
+        }
 
         private static string RedactHeaderValue(string name, string value)
         {
