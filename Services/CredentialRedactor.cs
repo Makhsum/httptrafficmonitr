@@ -56,6 +56,16 @@ namespace HttpTrafficMonitor.Services
             @"(?<name>\\""(?:" + string.Join("|", CredentialFields.Concat(ApiKeyHeaders).Select(Regex.Escape)) + "|" + PasswordLikeField + @")\\""\s*:\s*)(?<value>\\""(?:\\\\\\.|\\\\[^""\\]|\\[^""\\]|[^""\\])*\\""|-?\d[\d.eE+-]*)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+        // A credential a service carries as a URL path segment: a Telegram bot token (/bot123456:AAE.../getUpdates,
+        // also /file/bot.../), the secret of a Slack or Discord webhook URL; host and endpoint stay readable.
+        // Matched by the path alone, since a request line (GET /bot.../getMe HTTP/1.1) has no host in front of it.
+        // The slash may arrive escaped as \/ when a JSON body quotes the URL
+        private static readonly Regex UrlPathCredential = new(
+            @"(?<name>\\?/bot)(?<value>\d+(?::|%3A)[A-Za-z0-9_-]{20,})"
+                + @"|(?<name>\\?/services\\?/(?-i:T[A-Z0-9]+\\?/B[A-Z0-9]+)\\?/)(?<value>[A-Za-z0-9]+)"
+                + @"|(?<name>\\?/api\\?/(?:v\d+\\?/)?webhooks\\?/\d{17,20}\\?/)(?<value>[A-Za-z0-9_-]+)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         // Several Set-Cookie headers joined into one line by ", ", as a replay answer lists them;
         // the comma inside "Expires=Wed, 21 Oct 2026" is not followed by a name=value pair
         private static readonly Regex JoinedSetCookies = new(@",\s*(?=[^;,=\s]+=)", RegexOptions.Compiled);
@@ -79,6 +89,8 @@ namespace HttpTrafficMonitor.Services
             string redacted = CredentialHeaderLine.Replace(text, m =>
                 m.Groups["name"].Value + RedactHeaderValue(m.Groups["name"].Value.Trim().TrimEnd(':').Trim(), m.Groups["value"].Value));
             redacted = UrlEncodedCredentialField.Replace(redacted, m =>
+                m.Groups["name"].Value + Marker);
+            redacted = UrlPathCredential.Replace(redacted, m =>
                 m.Groups["name"].Value + Marker);
             redacted = JsonCredentialField.Replace(redacted, m =>
                 m.Groups["name"].Value + (m.Groups["value"].Value == "\"\"" ? "\"\"" : "\"" + Marker + "\""));

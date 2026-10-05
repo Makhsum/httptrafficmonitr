@@ -310,7 +310,7 @@ namespace HttpTrafficMonitor.ViewModels
         private static bool ConfirmRevealCredentialsToAgents()
         {
             var result = MessageBox.Show(
-                "AI agents connected over MCP will see Authorization, Cookie, API-key and token values and passwords in clear text.\n\nShow credentials to agents?",
+                "AI agents connected over MCP will see Authorization, Cookie, API-key and token values, passwords and tokens in URL paths in clear text.\n\nShow credentials to agents?",
                 "Agent sees credentials",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning,

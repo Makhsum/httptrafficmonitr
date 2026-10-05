@@ -158,7 +158,7 @@
                                  Margin="4,0"/>
                 <ui:ToggleSwitch IsChecked="{Binding RevealCredentialsToAgents}"
                                  OnContent="Agent sees credentials" OffContent="Agent sees credentials"
-                                 ToolTip="Off: MCP tool answers, and the exports and sessions an agent saves, hide Authorization, Cookie, API-key and token values, and password and token fields in bodies. Only you can change this here."
+                                 ToolTip="Off: MCP tool answers, and the exports and sessions an agent saves, hide Authorization, Cookie, API-key and token values, password and token fields in bodies, and tokens in URL paths such as Telegram bot tokens. Only you can change this here."
                                  AutomationProperties.AutomationId="Toolbar.AgentCredentialsToggle"
                                  Margin="4,0"/>
                 <ui:ToggleSwitch IsChecked="{Binding AllowAgentChanges}"
