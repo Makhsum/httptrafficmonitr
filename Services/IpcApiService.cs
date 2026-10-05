@@ -1132,15 +1132,19 @@ namespace HttpTrafficMonitor.Services
                     _vm.StatusMessage = $"Session saved ({snapshot.Count} requests)";
                 });
             }
-            catch (IOException) when (!overwrite && (File.Exists(target) || Directory.Exists(target)))
+            catch (IOException ex) when (!overwrite && (ex.HResult == ErrorFileExists || File.Exists(target) || Directory.Exists(target)))
             {
-                // Created by someone else between the check above and the write; CreateNew left it alone
+                // Created by someone else between the check above and the write, or hidden from File.Exists
+                // by its permissions; CreateNew left it alone
                 WriteError(response, ExistingFileRefusal(body.FilePath!), 403);
                 return;
             }
 
             WriteJson(response, new { success = true, credentialsNotice = redactor.NoticeIfRedacted });
         }
+
+        // ERROR_FILE_EXISTS: what CreateNew fails with when the file is there, even one File.Exists cannot see
+        private const int ErrorFileExists = unchecked((int)0x80070050);
 
         // "notes.txt:hidden" writes a hidden stream into notes.txt, so it counts as that file
         private static string FileOwningStream(string filePath)
