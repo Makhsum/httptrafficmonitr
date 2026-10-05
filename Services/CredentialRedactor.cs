@@ -61,16 +61,20 @@ namespace HttpTrafficMonitor.Services
                 + @"(?<value>(?:(?!%(?:25)*(?:26|23))[^&#\s""'<>\\])+)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+        // The credential fields of a JSON body; "authorization" is left to JsonHeaderValues, which keeps its scheme word
+        private static readonly string[] JsonCredentialFields =
+            CredentialFields.Where(f => f != "authorization").Concat(ApiKeyHeaders).ToArray();
+
         // "password": "value" in a JSON body or WebSocket message, also an API-key header a server echoes
         // back as JSON; an object or array under such a name stays
         private static readonly Regex JsonCredentialField = new(
-            @"(?<name>""(?:" + string.Join("|", CredentialFields.Concat(ApiKeyHeaders).Select(Regex.Escape)) + "|" + PasswordLikeField + @")""\s*:\s*)(?<value>""(?:[^""\\]|\\.)*""|-?\d[\d.eE+-]*)",
+            @"(?<name>""(?:" + string.Join("|", JsonCredentialFields.Select(Regex.Escape)) + "|" + PasswordLikeField + @")""\s*:\s*)(?<value>""(?:[^""\\]|\\.)*""|-?\d[\d.eE+-]*)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // The same inside a JSON string, \"password\": \"value\", as an echo service or a logged payload quotes it;
         // a quote inside the value arrives as \\\" and must not end it
         private static readonly Regex EscapedJsonCredentialField = new(
-            @"(?<name>\\""(?:" + string.Join("|", CredentialFields.Concat(ApiKeyHeaders).Select(Regex.Escape)) + "|" + PasswordLikeField + @")\\""\s*:\s*)(?<value>\\""(?:\\\\\\.|\\\\[^""\\]|\\[^""\\]|[^""\\])*\\""|-?\d[\d.eE+-]*)",
+            @"(?<name>\\""(?:" + string.Join("|", JsonCredentialFields.Select(Regex.Escape)) + "|" + PasswordLikeField + @")\\""\s*:\s*)(?<value>\\""(?:\\\\\\.|\\\\[^""\\]|\\[^""\\]|[^""\\])*\\""|-?\d[\d.eE+-]*)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // One value of a header an echo service lists as an array; a null or a number among the values
@@ -94,17 +98,18 @@ namespace HttpTrafficMonitor.Services
                 + @"|\[" + EscapedJsonSpace + EscapedJsonArrayValue + @"(?:" + EscapedJsonSpace + "," + EscapedJsonSpace + EscapedJsonArrayValue + @")*" + EscapedJsonSpace + @"\])",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        // An Authorization or API-key header an echo service such as webhook.site lists with an array of values,
-        // "authorization": ["Bearer value"], "x-api-key": ["value"]; each value goes like in the header itself
+        // An Authorization or API-key header a server echoes back as JSON, "Authorization": "Bearer value", also with an
+        // array of values as an echo service such as webhook.site lists it, "authorization": ["Bearer value"], "x-api-key": ["value"];
+        // each value goes like in the header itself, so the scheme word of an Authorization or Proxy-Authorization value stays
         private static readonly Regex JsonHeaderValues = new(
             @"(?<name>""(?<header>authorization|proxy-authorization|" + string.Join("|", ApiKeyHeaders.Select(Regex.Escape)) + @")""\s*:\s*)"
-                + @"(?<value>\[\s*" + JsonArrayValue + @"(?:\s*,\s*" + JsonArrayValue + @")*\s*\])",
+                + @"(?<value>""(?:[^""\\]|\\.)*""|-?\d[\d.eE+-]*|\[\s*" + JsonArrayValue + @"(?:\s*,\s*" + JsonArrayValue + @")*\s*\])",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        // The same inside a JSON string, \"authorization\": [\"Bearer value\"], also pretty-printed
+        // The same inside a JSON string, \"Authorization\": \"Bearer value\", \"authorization\": [\"Bearer value\"], also pretty-printed
         private static readonly Regex EscapedJsonHeaderValues = new(
             @"(?<name>\\""(?<header>authorization|proxy-authorization|" + string.Join("|", ApiKeyHeaders.Select(Regex.Escape)) + @")\\""\s*:" + EscapedJsonSpace + @")"
-                + @"(?<value>\[" + EscapedJsonSpace + EscapedJsonArrayValue + @"(?:" + EscapedJsonSpace + "," + EscapedJsonSpace + EscapedJsonArrayValue + @")*" + EscapedJsonSpace + @"\])",
+                + @"(?<value>" + EscapedJsonStringValue + @"|-?\d[\d.eE+-]*|\[" + EscapedJsonSpace + EscapedJsonArrayValue + @"(?:" + EscapedJsonSpace + "," + EscapedJsonSpace + EscapedJsonArrayValue + @")*" + EscapedJsonSpace + @"\])",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // The cookies an echo service lists already parsed, one property per cookie ("cookies": {"session": "value"}),
