@@ -22,6 +22,9 @@ namespace HttpTrafficMonitor.Services
             "accessToken", "refreshToken", "idToken", "authToken", "apiKey", "clientSecret", "sessionToken"
         };
 
+        // Any other field name holding "password" or "passwd": new_password, password_confirmation, user[password], confirmPassword
+        private const string PasswordLikeField = @"[^=&?#\s""\\]*?pass(?:word|wd)[^=&?#\s""\\]*";
+
         // Headers that carry a bare API key or token, with no scheme word in front of it
         private static readonly string[] ApiKeyHeaders =
         {
@@ -36,20 +39,21 @@ namespace HttpTrafficMonitor.Services
             RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Compiled);
 
         // "?token=value" or "&token=value" in a URL, a request line or a message that quotes a URL,
-        // and "password=value" at the start of a form-encoded body
+        // and "password=value" at the start of a form-encoded body or of a JSON string that echoes one
         private static readonly Regex UrlEncodedCredentialField = new(
-            @"(?<=^|[?&])(?<name>(?:" + string.Join("|", CredentialFields.Select(Regex.Escape)) + @")=)(?<value>[^&#\s""'<>\\]+)",
+            @"(?<=^|[?&""])(?<name>(?:" + string.Join("|", CredentialFields.Select(Regex.Escape)) + "|" + PasswordLikeField + @")=)(?<value>[^&#\s""'<>\\]+)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // "password": "value" in a JSON body or WebSocket message, also an API-key header a server echoes
         // back as JSON; an object or array under such a name stays
         private static readonly Regex JsonCredentialField = new(
-            @"(?<name>""(?:" + string.Join("|", CredentialFields.Concat(ApiKeyHeaders).Select(Regex.Escape)) + @")""\s*:\s*)(?<value>""(?:[^""\\]|\\.)*""|-?\d[\d.eE+-]*)",
+            @"(?<name>""(?:" + string.Join("|", CredentialFields.Concat(ApiKeyHeaders).Select(Regex.Escape)) + "|" + PasswordLikeField + @")""\s*:\s*)(?<value>""(?:[^""\\]|\\.)*""|-?\d[\d.eE+-]*)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        // The same inside a JSON string, \"password\": \"value\", as an echo service or a logged payload quotes it
+        // The same inside a JSON string, \"password\": \"value\", as an echo service or a logged payload quotes it;
+        // a quote inside the value arrives as \\\" and must not end it
         private static readonly Regex EscapedJsonCredentialField = new(
-            @"(?<name>\\""(?:" + string.Join("|", CredentialFields.Concat(ApiKeyHeaders).Select(Regex.Escape)) + @")\\""\s*:\s*)(?<value>\\""(?:[^""\\]|\\[^""])*\\""|-?\d[\d.eE+-]*)",
+            @"(?<name>\\""(?:" + string.Join("|", CredentialFields.Concat(ApiKeyHeaders).Select(Regex.Escape)) + "|" + PasswordLikeField + @")\\""\s*:\s*)(?<value>\\""(?:\\\\\\.|\\\\[^""\\]|\\[^""\\]|[^""\\])*\\""|-?\d[\d.eE+-]*)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // Several Set-Cookie headers joined into one line by ", ", as a replay answer lists them;
