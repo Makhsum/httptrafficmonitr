@@ -101,15 +101,16 @@ namespace HttpTrafficMonitor.Services
 
         // An Authorization or API-key header a server echoes back as JSON, "Authorization": "Bearer value", also with an
         // array of values as an echo service such as webhook.site lists it, "authorization": ["Bearer value"], "x-api-key": ["value"];
-        // each value goes like in the header itself, so the scheme word of an Authorization or Proxy-Authorization value stays
+        // each value goes like in the header itself, so the scheme word of an Authorization or Proxy-Authorization value stays;
+        // also "HTTP_AUTHORIZATION" and "HTTP_PROXY_AUTHORIZATION" as a CGI, WSGI or PHP server lists the request environment
         private static readonly Regex JsonHeaderValues = new(
-            @"(?<name>""(?<header>authorization|proxy-authorization|" + string.Join("|", ApiKeyHeaders.Select(Regex.Escape)) + @")""\s*:\s*)"
+            @"(?<name>""(?:http_)?(?<header>authorization|proxy[-_]authorization|" + string.Join("|", ApiKeyHeaders.Select(Regex.Escape)) + @")""\s*:\s*)"
                 + @"(?<value>""(?:[^""\\]|\\.)*""|-?\d[\d.eE+-]*|\[\s*" + JsonArrayValue + @"(?:\s*,\s*" + JsonArrayValue + @")*\s*\])",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        // The same inside a JSON string, \"Authorization\": \"Bearer value\", \"authorization\": [\"Bearer value\"], also pretty-printed
+        // The same inside a JSON string, \"Authorization\": \"Bearer value\", \"authorization\": [\"Bearer value\"], \"HTTP_AUTHORIZATION\": \"Bearer value\", also pretty-printed
         private static readonly Regex EscapedJsonHeaderValues = new(
-            @"(?<name>\\""(?<header>authorization|proxy-authorization|" + string.Join("|", ApiKeyHeaders.Select(Regex.Escape)) + @")\\""\s*:" + EscapedJsonSpace + @")"
+            @"(?<name>\\""(?:http_)?(?<header>authorization|proxy[-_]authorization|" + string.Join("|", ApiKeyHeaders.Select(Regex.Escape)) + @")\\""\s*:" + EscapedJsonSpace + @")"
                 + @"(?<value>" + EscapedJsonStringValue + @"|-?\d[\d.eE+-]*|\[" + EscapedJsonSpace + EscapedJsonArrayValue + @"(?:" + EscapedJsonSpace + "," + EscapedJsonSpace + EscapedJsonArrayValue + @")*" + EscapedJsonSpace + @"\])",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
