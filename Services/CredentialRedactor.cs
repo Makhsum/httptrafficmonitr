@@ -353,6 +353,10 @@ namespace HttpTrafficMonitor.Services
         // A multipart body two levels deep may hold no quote at all, as .NET writes the part names without quotes
         private const string LineBreakTwoLevelsDeep = @"\\n";
 
+        // ASP.NET Core's System.Text.Json writes a quote inside a string as \u0022, which the rules above do not read as one;
+        // a string holding it is unquoted the same way, so a body it echoes ("data": "{\u0022password\u0022: ...}") is read as plain JSON
+        private const string QuoteEscapedAsUnicode = @"\u0022";
+
         // Such a string waits behind a placeholder while the other rules run, since they would read its second level
         // as the first: a header text there would lose every line after the Authorization line. It carries a key of its own
         // call, so a body string of the same shape stays as it is. One that shares its opening quote with the string before
@@ -516,7 +520,7 @@ namespace HttpTrafficMonitor.Services
         private string RedactQuotedTwice(Match m, List<string> quotedTwice, string placeholderKey)
         {
             string text = m.Groups["text"].Value;
-            if (!text.Contains(QuoteTwoLevelsDeep) && !text.Contains(LineBreakTwoLevelsDeep)) return m.Value;
+            if (!text.Contains(QuoteTwoLevelsDeep) && !text.Contains(LineBreakTwoLevelsDeep) && !text.Contains(QuoteEscapedAsUnicode, StringComparison.OrdinalIgnoreCase)) return m.Value;
             // a raw line break or other control character never stands in a JSON string, only in text a stray quote paired
             // the wrong way, which quoting back would rewrite
             if (text.Any(c => c < ' ')) return m.Value;
