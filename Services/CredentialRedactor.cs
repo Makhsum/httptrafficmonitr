@@ -349,6 +349,13 @@ namespace HttpTrafficMonitor.Services
             @"(?<=(?:^|[^\\])(?:\\\\)*)""(?<text>(?:[^""\\]|\\.)*)""",
             RegexOptions.Compiled);
 
+        // The same for a single-quoted script string, var n = '{\\\"token\\\":\\\"value\\\"}': no double-quoted string stands
+        // around it, so the quotes inside follow an odd run of backslashes and the rule above never pairs them. Only a string
+        // holding a quote two levels deep is unquoted; an apostrophe in prose pairs text that holds none
+        private static readonly Regex ScriptStringQuotedTwice = new(
+            @"(?<=(?:^|[^\\])(?:\\\\)*)'(?<text>(?:[^'\\]|\\.)*)'",
+            RegexOptions.Compiled);
+
         private const string QuoteTwoLevelsDeep = @"\\\""";
 
         // A multipart body two levels deep may hold no quote at all, as .NET writes the part names without quotes
@@ -382,7 +389,8 @@ namespace HttpTrafficMonitor.Services
 
             var quotedTwice = new List<string>();
             string placeholderKey = Guid.NewGuid().ToString("N");
-            string redacted = ReplaceQuotedTwice(text, quotedTwice, placeholderKey);
+            string redacted = ReplaceQuotedTwice(text, JsonStringQuotedTwice, '"', quotedTwice, placeholderKey);
+            redacted = ReplaceQuotedTwice(redacted, ScriptStringQuotedTwice, '\'', quotedTwice, placeholderKey);
             redacted = CredentialHeaderLine.Replace(redacted, m =>
                 m.Groups["name"].Value + RedactHeaderValue(m.Groups["name"].Value.Trim().TrimEnd(':').Trim(), m.Groups["value"].Value));
             redacted = UrlEncodedCredentialField.Replace(redacted, m =>
@@ -496,32 +504,34 @@ namespace HttpTrafficMonitor.Services
         // scan goes on from the closing quote of each one, so a stray quote before a string does not hide it, not even when
         // the text it wrongly pairs lost a value as well; the placeholder of a string that opens with the closing quote of
         // the one before goes without that quote
-        private string ReplaceQuotedTwice(string text, List<string> quotedTwice, string placeholderKey)
+        private string ReplaceQuotedTwice(string text, Regex quotedString, char quote, List<string> quotedTwice, string placeholderKey)
         {
             var result = new StringBuilder();
             int copied = 0;
-            Match m = JsonStringQuotedTwice.Match(text);
+            Match m = quotedString.Match(text);
             while (m.Success)
             {
                 int end = m.Index + m.Length;
-                string replaced = RedactQuotedTwice(m, quotedTwice, placeholderKey);
+                string replaced = RedactQuotedTwice(m, quote, quotedTwice, placeholderKey);
                 if (replaced != m.Value)
                 {
                     if (m.Index < copied) result.Append(replaced, 1, replaced.Length - 1);
                     else result.Append(text, copied, m.Index - copied).Append(replaced);
                     copied = end;
                 }
-                m = JsonStringQuotedTwice.Match(text, end - 1);
+                m = quotedString.Match(text, end - 1);
             }
             return copied == 0 ? text : result.Append(text, copied, text.Length - copied).ToString();
         }
 
         // Unquotes the string once, redacts what it holds and quotes it back, then hands it on as a placeholder;
-        // a string that holds no second quoting level, that is no valid JSON string or that loses nothing stays as it is
-        private string RedactQuotedTwice(Match m, List<string> quotedTwice, string placeholderKey)
+        // a string that holds no second quoting level, that is no valid JSON string or that loses nothing stays as it is.
+        // A single-quoted script string is read and quoted back with its own quote
+        private string RedactQuotedTwice(Match m, char quote, List<string> quotedTwice, string placeholderKey)
         {
             string text = m.Groups["text"].Value;
-            if (!text.Contains(QuoteTwoLevelsDeep) && !text.Contains(LineBreakTwoLevelsDeep) && !text.Contains(QuoteEscapedAsUnicode, StringComparison.OrdinalIgnoreCase)) return m.Value;
+            if (quote == '\'' ? !text.Contains(QuoteTwoLevelsDeep)
+                : !text.Contains(QuoteTwoLevelsDeep) && !text.Contains(LineBreakTwoLevelsDeep) && !text.Contains(QuoteEscapedAsUnicode, StringComparison.OrdinalIgnoreCase)) return m.Value;
             // a raw line break or other control character never stands in a JSON string, only in text a stray quote paired
             // the wrong way, which quoting back would rewrite
             if (text.Any(c => c < ' ')) return m.Value;
@@ -529,7 +539,7 @@ namespace HttpTrafficMonitor.Services
             string? unquoted;
             try
             {
-                using var reader = new JsonTextReader(new StringReader("\"" + text + "\"")) { DateParseHandling = DateParseHandling.None };
+                using var reader = new JsonTextReader(new StringReader(quote + text + quote)) { DateParseHandling = DateParseHandling.None };
                 unquoted = reader.Read() ? reader.Value as string : null;
             }
             catch (JsonReaderException)
@@ -540,7 +550,9 @@ namespace HttpTrafficMonitor.Services
 
             string redacted = Redact(unquoted);
             if (redacted == unquoted) return m.Value;
-            quotedTwice.Add(JsonConvert.ToString(redacted));
+            // Newtonsoft leaves a double quote bare inside a single-quoted string; the script escaped it, since it holds one two levels deep
+            string requoted = JsonConvert.ToString(redacted, quote);
+            quotedTwice.Add(quote == '\'' ? requoted.Replace("\"", "\\\"") : requoted);
             return "\"\u0001" + placeholderKey + ":" + (quotedTwice.Count - 1) + "\u0001\"";
         }
 
