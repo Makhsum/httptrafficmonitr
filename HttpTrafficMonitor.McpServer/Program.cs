@@ -12,6 +12,9 @@ builder.Logging.AddConsole(options =>
 
 builder.Services.AddSingleton<HttpTrafficMonitor.McpServer.IpcClient>();
 
+// Registered first, so it hides its tools before the MCP server exists to announce the change
+builder.Services.AddHostedService<HttpTrafficMonitor.McpServer.AgentChangesWatcher>();
+
 builder.Services.AddMcpServer()
     .WithStdioServerTransport()
     .WithToolsFromAssembly();

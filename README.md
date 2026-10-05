@@ -122,6 +122,8 @@ Tool groups (see `HttpTrafficMonitor.McpServer/Tools/`):
 
 Add it to an MCP-capable client (e.g. Claude Code / Claude Desktop) pointing at the built `HttpTrafficMonitor.McpServer.exe`; the main `HttpTrafficMonitor.exe` must already be running and capturing for most tools to return data.
 
+By default an assistant can only read: `replay_request` sends GET only, and the tools that change the Auto-Responder are not offered. Turn on the toolbar switch **Agent may make changes** in the app to allow other methods and mock rules; no MCP tool can turn it on.
+
 ### Configuring the MCP server
 
 **From a release download** — unzip `HttpTrafficMonitor.McpServer-<version>-win-x64.zip` anywhere (e.g. `C:\Tools`) and point your client at the exe; no build and no .NET install needed:

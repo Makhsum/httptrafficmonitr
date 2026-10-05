@@ -1,5 +1,6 @@
 using ModelContextProtocol.Server;
 using System.ComponentModel;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 
@@ -8,7 +9,7 @@ namespace HttpTrafficMonitor.McpServer.Tools;
 [McpServerToolType]
 public static class ReplayTools
 {
-    [McpServerTool, Description("Replay an HTTP request with the specified method, URL, headers, and body. Returns the response status, duration, headers, and body.")]
+    [McpServerTool, Description("Replay an HTTP request with the specified method, URL, headers, and body. Returns the response status, duration, headers, and body. Only GET is allowed unless the user allowed agent changes in the app.")]
     public static async Task<string> replay_request(
         IpcClient client,
         [Description("HTTP method (e.g., GET, POST, PUT, DELETE)")] string method,
@@ -116,6 +117,11 @@ public static class ReplayTools
             }
 
             return TrafficTools.WithCredentialsNotice(sb.ToString().TrimEnd(), result);
+        }
+        catch (IpcApiException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
+        {
+            // The app only lets agents replay GET until the user allows changes
+            return $"The request was not sent: {ex.ApiError ?? ex.Message}";
         }
         catch (HttpRequestException ex)
         {

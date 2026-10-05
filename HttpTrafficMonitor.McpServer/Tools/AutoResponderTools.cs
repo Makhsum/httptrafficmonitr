@@ -9,6 +9,15 @@ namespace HttpTrafficMonitor.McpServer.Tools;
 [McpServerToolType]
 public static class AutoResponderTools
 {
+    // Offered only while the user allows agent changes in the app (see AgentChangesWatcher)
+    internal static readonly string[] ChangeToolNames =
+    {
+        nameof(toggle_auto_responder),
+        nameof(add_auto_responder_rule),
+        nameof(update_auto_responder_rule),
+        nameof(delete_auto_responder_rule)
+    };
+
     [McpServerTool, Description("Get the current status of the auto-responder, including whether it is enabled and how many rules are configured.")]
     public static async Task<string> get_auto_responder_status(IpcClient client)
     {

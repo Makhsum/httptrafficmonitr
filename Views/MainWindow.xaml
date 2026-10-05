@@ -161,6 +161,11 @@
                                  ToolTip="Off: MCP tool answers, and the exports and sessions an agent saves, hide Authorization, Cookie and token values. Only you can change this here."
                                  AutomationProperties.AutomationId="Toolbar.AgentCredentialsToggle"
                                  Margin="4,0"/>
+                <ui:ToggleSwitch IsChecked="{Binding AllowAgentChanges}"
+                                 OnContent="Agent may make changes" OffContent="Agent may make changes"
+                                 ToolTip="Off: an agent connected over MCP can replay only GET requests and is not offered the tools that change the Auto-Responder. Only you can change this here."
+                                 AutomationProperties.AutomationId="Toolbar.AgentChangesToggle"
+                                 Margin="4,0"/>
                 <ui:Button Icon="{ui:SymbolIcon Accessibility24}"
                            Command="{Binding ToggleBottomPanelCommand}"
                            ToolTip="Toggle Bottom Panel"

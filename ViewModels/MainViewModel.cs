@@ -49,6 +49,7 @@ namespace HttpTrafficMonitor.ViewModels
         private bool _showBookmarksOnly;
         private bool _isDarkTheme = true;
         private bool _revealCredentialsToAgents;
+        private bool _allowAgentChanges;
         private string _decodedRequestContent = string.Empty;
         private string _decodedResponseContent = string.Empty;
         private string _decodedRequestInfo = string.Empty;
@@ -180,6 +181,21 @@ namespace HttpTrafficMonitor.ViewModels
                 if (SetProperty(ref _revealCredentialsToAgents, value)) _themeService.SetRevealCredentialsToAgents(value);
             }
         }
+        // Read by the local API before a non-GET replay or an Auto-Responder change; only this toolbar switch changes it
+        public bool AllowAgentChanges
+        {
+            get => _allowAgentChanges;
+            set
+            {
+                if (value && !_allowAgentChanges && !ConfirmAllowAgentChanges())
+                {
+                    // Turn the switch back off once the click that turned it on is done
+                    Application.Current.Dispatcher.BeginInvoke(() => OnPropertyChanged(nameof(AllowAgentChanges)));
+                    return;
+                }
+                if (SetProperty(ref _allowAgentChanges, value)) _themeService.SetAllowAgentChanges(value);
+            }
+        }
         public bool IsAdvancedFilterActive { get => _isAdvancedFilterActive; set { if (SetProperty(ref _isAdvancedFilterActive, value)) FilteredRequests.Refresh(); } }
 
         // Decoded content
@@ -279,6 +295,7 @@ namespace HttpTrafficMonitor.ViewModels
             _themeService.Initialize();
             _isDarkTheme = _themeService.IsDarkTheme;
             _revealCredentialsToAgents = _themeService.RevealCredentialsToAgents;
+            _allowAgentChanges = _themeService.AllowAgentChanges;
             GraphsVm.ApplyTheme(_isDarkTheme);
         }
 
@@ -287,6 +304,17 @@ namespace HttpTrafficMonitor.ViewModels
             var result = MessageBox.Show(
                 "AI agents connected over MCP will see Authorization, Cookie and token values in clear text.\n\nShow credentials to agents?",
                 "Agent sees credentials",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No);
+            return result == MessageBoxResult.Yes;
+        }
+
+        private static bool ConfirmAllowAgentChanges()
+        {
+            var result = MessageBox.Show(
+                "AI agents connected over MCP will be able to replay requests with any method (POST, PUT, DELETE, ...) and to add, change and delete Auto-Responder rules that answer live traffic.\n\nAllow agents to make changes?",
+                "Agent may make changes",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning,
                 MessageBoxResult.No);

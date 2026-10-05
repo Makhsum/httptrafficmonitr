@@ -14,6 +14,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 - MCP tool answers hide the values of Authorization, Proxy-Authorization, Cookie and Set-Cookie headers and of common token query parameters by default. The toolbar switch "Agent sees credentials" shows them again; only the user can turn it on.
 - Exports made through the MCP tools (curl, HAR, Postman, JSON, CSV) and sessions saved through `save_session` hide the same values and follow the same switch. Exports and sessions made in the app window stay complete.
+- The MCP server is read-only by default: `replay_request` only sends GET, and the tools that change the Auto-Responder (`toggle_auto_responder`, `add_auto_responder_rule`, `update_auto_responder_rule`, `delete_auto_responder_rule`) are not offered. The toolbar switch "Agent may make changes" allows both; only the user can turn it on. Auto-Responder rules set up in the app keep answering live traffic either way.
 
 ## [0.1.0] - 2026-10-04
 

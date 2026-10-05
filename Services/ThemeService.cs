@@ -17,10 +17,13 @@ namespace HttpTrafficMonitor.Services
         // settings.json is kept here, so the user's other toolbar choices are saved next to the theme
         public bool RevealCredentialsToAgents { get; private set; }
 
+        public bool AllowAgentChanges { get; private set; }
+
         public void Initialize()
         {
             IsDarkTheme = LoadThemePreference();
             RevealCredentialsToAgents = LoadSettings().RevealCredentialsToAgents;
+            AllowAgentChanges = LoadSettings().AllowAgentChanges;
             ApplyTheme();
         }
 
@@ -31,6 +34,20 @@ namespace HttpTrafficMonitor.Services
             {
                 var settings = LoadSettings();
                 settings.RevealCredentialsToAgents = reveal;
+                string dir = Path.GetDirectoryName(SettingsPath)!;
+                Directory.CreateDirectory(dir);
+                File.WriteAllText(SettingsPath, JsonConvert.SerializeObject(settings));
+            }
+            catch { }
+        }
+
+        public void SetAllowAgentChanges(bool allow)
+        {
+            AllowAgentChanges = allow;
+            try
+            {
+                var settings = LoadSettings();
+                settings.AllowAgentChanges = allow;
                 string dir = Path.GetDirectoryName(SettingsPath)!;
                 Directory.CreateDirectory(dir);
                 File.WriteAllText(SettingsPath, JsonConvert.SerializeObject(settings));
@@ -100,6 +117,9 @@ namespace HttpTrafficMonitor.Services
 
             // Only the toolbar switch sets this; no route of the local API reaches it
             public bool RevealCredentialsToAgents { get; set; }
+
+            // Same: only the toolbar switch sets this, so no MCP tool can turn it on
+            public bool AllowAgentChanges { get; set; }
         }
     }
 }

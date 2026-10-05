@@ -222,6 +222,8 @@ namespace HttpTrafficMonitor.Services
                     HandleGetAlertEvents(ctx.Request, response);
                 else if (path == "/api/alerts/sound" && method == "POST")
                     HandleSetAlertSound(ctx.Request, response);
+                else if (path == "/api/agent-changes" && method == "GET")
+                    HandleGetAgentChanges(response);
                 else if (path == "/api/auto-responder/status" && method == "GET")
                     HandleAutoResponderStatus(response);
                 else if (path == "/api/auto-responder/toggle" && method == "POST")
@@ -778,6 +780,7 @@ namespace HttpTrafficMonitor.Services
 
         private void HandleAutoResponderToggle(HttpListenerRequest request, HttpListenerResponse response)
         {
+            if (!AgentChangesAllowed(response)) return;
             var body = ReadBody<AutoResponderToggleDto>(request);
 
             InvokeOnUI(() =>
@@ -798,6 +801,7 @@ namespace HttpTrafficMonitor.Services
 
         private void HandleAddAutoResponderRule(HttpListenerRequest request, HttpListenerResponse response)
         {
+            if (!AgentChangesAllowed(response)) return;
             var body = ReadBody<AutoResponderRuleDto>(request);
 
             var data = InvokeOnUI(() =>
@@ -823,6 +827,7 @@ namespace HttpTrafficMonitor.Services
 
         private void HandleUpdateAutoResponderRule(string path, HttpListenerRequest request, HttpListenerResponse response)
         {
+            if (!AgentChangesAllowed(response)) return;
             string id = path.Substring("/api/auto-responder/rules/".Length);
             var body = ReadBody<AutoResponderRuleDto>(request);
 
@@ -854,6 +859,7 @@ namespace HttpTrafficMonitor.Services
 
         private void HandleDeleteAutoResponderRule(string path, HttpListenerResponse response)
         {
+            if (!AgentChangesAllowed(response)) return;
             string id = path.Substring("/api/auto-responder/rules/".Length);
 
             bool found = InvokeOnUI(() =>
@@ -875,11 +881,33 @@ namespace HttpTrafficMonitor.Services
             WriteJson(response, new { success = true });
         }
 
+        // ======================= AGENT CHANGES =======================
+
+        // Read by the MCP server to decide whether it offers the tools that change the Auto-Responder
+        private void HandleGetAgentChanges(HttpListenerResponse response)
+        {
+            WriteJson(response, new { allowed = _vm.AllowAgentChanges });
+        }
+
+        // Only the toolbar switch turns this on; there is deliberately no route that sets it
+        private bool AgentChangesAllowed(HttpListenerResponse response)
+        {
+            if (_vm.AllowAgentChanges) return true;
+            WriteError(response, "The app only lets agents read: a replay may only use GET and the Auto-Responder cannot be changed. The user can allow changes with the toolbar switch \"Agent may make changes\" in HTTP Traffic Monitor.", 403);
+            return false;
+        }
+
         // ======================= REPLAY =======================
 
         private async Task HandleReplay(HttpListenerRequest request, HttpListenerResponse response)
         {
             var body = ReadBody<ReplayRequestDto>(request);
+
+            string replayMethod = (body.Method ?? "GET").Trim();
+            if (replayMethod.Equals("GET", StringComparison.OrdinalIgnoreCase))
+                replayMethod = "GET";
+            else if (!AgentChangesAllowed(response))
+                return;
 
             var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             if (body.Headers != null)
@@ -890,7 +918,7 @@ namespace HttpTrafficMonitor.Services
 
             using var replayService = new HttpReplayService();
             var result = await replayService.SendRequestAsync(
-                body.Method ?? "GET",
+                replayMethod,
                 body.Url ?? "",
                 headers,
                 body.Body);
