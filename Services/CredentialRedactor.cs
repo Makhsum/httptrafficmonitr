@@ -176,6 +176,58 @@ namespace HttpTrafficMonitor.Services
                 + string.Join("|", ApiKeyHeaders.Select(Regex.Escape)) + @")\\""",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+        // The headers whose value is a credential, for the shapes below
+        private static readonly string CredentialHeaderNames =
+            "authorization|proxy-authorization|cookie|set-cookie|" + string.Join("|", ApiKeyHeaders.Select(Regex.Escape));
+
+        private static readonly Regex CredentialHeaderName = new(@"^(?:" + CredentialHeaderNames + @")$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        // Node's rawHeaders: one flat list alternating name and value, "rawHeaders": ["Authorization", "Bearer value", "Cookie", "sid=value"],
+        // also rawTrailers; a value goes like in the header itself when the name before it is a credential header.
+        // Only under these names, since a plain list of header names ("headers": ["Authorization", "Content-Type"]) is no such list
+        private const string JsonRawHeaderListKey = @"raw_?(?:headers|trailers)";
+
+        private static readonly Regex JsonRawHeaderList = new(
+            @"(?<name>""" + JsonRawHeaderListKey + @"""\s*:\s*)(?<value>\[\s*" + JsonArrayValue + @"(?:\s*,\s*" + JsonArrayValue + @")*\s*\])",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        // The same inside a JSON string, \"rawHeaders\": [\"Authorization\", \"Bearer value\"], also pretty-printed
+        private static readonly Regex EscapedJsonRawHeaderList = new(
+            @"(?<name>\\""" + JsonRawHeaderListKey + @"\\""\s*:\s*)(?<value>\[" + EscapedJsonSpace + EscapedJsonArrayValue
+                + @"(?:" + EscapedJsonSpace + "," + EscapedJsonSpace + EscapedJsonArrayValue + @")*" + EscapedJsonSpace + @"\])",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        // One item of such a list; a null or a number counts as an item, so it does not shift the names and values after it
+        private static readonly Regex JsonArrayItem = new(@"""(?<text>(?:[^""\\]|\\.)*)""|-?\d[\d.eE+-]*|null", RegexOptions.Compiled);
+
+        private static readonly Regex EscapedJsonArrayItem = new(@"\\""(?<text>(?:\\\\\\.|\\\\[^""\\]|\\[^""\\]|[^""\\])*)\\""|-?\d[\d.eE+-]*|null", RegexOptions.Compiled);
+
+        // ASGI and Starlette list the headers as name/value pairs, "headers": [["authorization", "Bearer value"], ["cookie", "sid=value"]];
+        // the value of a pair named after a credential header goes like in the header itself. Such a pair counts under any
+        // property name (scope.headers, raw_headers) but only as an entry of a list of pairs, so a plain list of
+        // header names ("allowHeaders": ["Authorization", "Content-Type"]) stays
+        private static readonly Regex JsonHeaderPair = new(
+            @"(?<=\[\s*|\]\s*,\s*)(?<name>\[\s*""(?<header>" + CredentialHeaderNames + @")""\s*,\s*)""(?<value>(?:[^""\\]|\\.)*)""(?<end>\s*\])",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        // The same inside a JSON string, [\"authorization\", \"Bearer value\"]
+        private static readonly Regex EscapedJsonHeaderPair = new(
+            @"(?<=\[" + EscapedJsonSpace + @"|\]" + EscapedJsonSpace + "," + EscapedJsonSpace + @")(?<name>\[" + EscapedJsonSpace + @"\\""(?<header>" + CredentialHeaderNames + @")\\""" + EscapedJsonSpace + "," + EscapedJsonSpace + @")"
+                + @"\\""(?<value>(?:\\\\\\.|\\\\[^""\\]|\\[^""\\]|[^""\\])*)\\""(?<end>" + EscapedJsonSpace + @"\])",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        // A header block held in one JSON string, "headers": "Authorization: Bearer value\nAccept: */*", as a Postman v1 collection
+        // or a logged request keeps it, also one "Name: value" string of a list; a line starts at the opening quote or after
+        // an escaped line break and ends at the next escaped line break or at the closing quote
+        private static readonly Regex JsonHeaderTextLine = new(
+            @"(?<=(?<!\\)""|(?<!\\)\\[rn])(?<name>[ \t]*(?:" + CredentialHeaderNames + @")[ \t]*:[ \t]*)(?<value>(?:[^""\\]|\\[^rn])*)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        // The same inside a JSON string, \"headers\": \"Authorization: Bearer value\\nAccept: */*\"
+        private static readonly Regex EscapedJsonHeaderTextLine = new(
+            @"(?<=\\""|\\\\[rn])(?<name>[ \t]*(?:" + CredentialHeaderNames + @")[ \t]*:[ \t]*)(?<value>(?:\\\\\\.|\\\\[^""\\rn]|\\[^""\\]|[^""\\])*)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         // The auth block of a Postman collection lists its credentials as key/value entries, "bearer": [{"key": "token", "value": "value"}],
         // also basic, apikey, oauth2 and the other auth types; an environment or a collection lists its variables the same way,
         // "values": [{"key": "access_token", "value": "value"}], "variable": [...]. Only the "value" of an entry whose key names
@@ -331,6 +383,18 @@ namespace HttpTrafficMonitor.Services
                         return p.Groups["name"].Value + "\\\"" + RedactHeaderValue(header.Groups["header"].Value, value.StartsWith("\\\"") ? value[2..^2] : value) + "\\\"";
                     });
                 }));
+            redacted = JsonRawHeaderList.Replace(redacted, m =>
+                m.Groups["name"].Value + RedactRawHeaderItems(JsonArrayItem, m.Groups["value"].Value, "\""));
+            redacted = EscapedJsonRawHeaderList.Replace(redacted, m =>
+                m.Groups["name"].Value + RedactRawHeaderItems(EscapedJsonArrayItem, m.Groups["value"].Value, "\\\""));
+            redacted = JsonHeaderPair.Replace(redacted, m =>
+                m.Groups["name"].Value + "\"" + RedactHeaderValue(m.Groups["header"].Value, m.Groups["value"].Value) + "\"" + m.Groups["end"].Value);
+            redacted = EscapedJsonHeaderPair.Replace(redacted, m =>
+                m.Groups["name"].Value + "\\\"" + RedactHeaderValue(m.Groups["header"].Value, m.Groups["value"].Value) + "\\\"" + m.Groups["end"].Value);
+            redacted = JsonHeaderTextLine.Replace(redacted, m =>
+                m.Groups["name"].Value + RedactHeaderValue(m.Groups["name"].Value.Trim().TrimEnd(':').Trim(), m.Groups["value"].Value));
+            redacted = EscapedJsonHeaderTextLine.Replace(redacted, m =>
+                m.Groups["name"].Value + RedactHeaderValue(m.Groups["name"].Value.Trim().TrimEnd(':').Trim(), m.Groups["value"].Value));
             redacted = JsonPostmanList.Replace(redacted, m =>
                 m.Groups["name"].Value + JsonHeaderListEntry.Replace(m.Groups["value"].Value, e =>
                 {
@@ -379,6 +443,22 @@ namespace HttpTrafficMonitor.Services
             string trimmed = value.Trim();
             int space = trimmed.IndexOf(' ');
             return space < 0 ? Marker : trimmed[..space] + " " + Marker;
+        }
+
+        // Items alternate name and value; a value goes when the name before it is a credential header
+        private static string RedactRawHeaderItems(Regex item, string list, string quote)
+        {
+            int index = 0;
+            string? header = null;
+            return item.Replace(list, s =>
+            {
+                if (index++ % 2 == 0)
+                {
+                    header = s.Groups["text"].Success && CredentialHeaderName.IsMatch(s.Groups["text"].Value) ? s.Groups["text"].Value : null;
+                    return s.Value;
+                }
+                return header == null || !s.Groups["text"].Success ? s.Value : quote + RedactHeaderValue(header, s.Groups["text"].Value) + quote;
+            });
         }
 
         private static string RedactSetCookie(string cookie)
