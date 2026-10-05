@@ -233,9 +233,10 @@ namespace HttpTrafficMonitor.Services
 
         // The auth block of a Postman collection lists its credentials as key/value entries, "bearer": [{"key": "token", "value": "value"}],
         // also basic, apikey, oauth2 and the other auth types; an environment or a collection lists its variables the same way,
-        // "values": [{"key": "access_token", "value": "value"}], "variable": [...]. Only the "value" of an entry whose key names
+        // "values": [{"key": "access_token", "value": "value"}], "variable": [...], and a request its query parameters and form body,
+        // "query": [...], "urlencoded": [...], "formdata": [...]. Only the "value" of an entry whose key names
         // a credential goes; the auth type and the keys stay
-        private const string PostmanListKey = @"(?:bearer|basic|digest|apikey|oauth1|oauth2|hawk|awsv4|ntlm|akamai|edgegrid|jwt|asap|values|variable)";
+        private const string PostmanListKey = @"(?:bearer|basic|digest|apikey|oauth1|oauth2|hawk|awsv4|ntlm|akamai|edgegrid|jwt|asap|values|variable|query|urlencoded|formdata)";
 
         private static readonly Regex JsonPostmanList = new(
             @"(?<name>""(?<list>" + PostmanListKey + @")""\s*:\s*)(?<value>\[\s*" + JsonCookieListEntry + @"(?:\s*,\s*" + JsonCookieListEntry + @")*\s*\])",
