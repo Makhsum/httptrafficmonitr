@@ -98,15 +98,16 @@ namespace HttpTrafficMonitor.Services
 
         // The cookies a HAR-style echo service (mockbin and similar) lists as name/value objects,
         // "cookies": [{"name": "session", "value": "value", "path": "/"}]; only each "value" goes. An entry may hold
-        // an object of its own, as the partitionKey of a cookie Chrome DevTools or Puppeteer lists
-        private const string JsonCookieListEntry = @"\{(?:" + JsonObjectMember + @"|\{(?:" + JsonObjectMember + @")*\})*\}";
+        // objects of its own at any depth, as the partitionKey of a cookie Chrome DevTools or Puppeteer lists;
+        // the braces are counted so one deep entry does not leave every other entry of the list readable
+        private const string JsonCookieListEntry = @"\{(?>" + JsonObjectMember + @"|(?<open>\{)|(?<-open>\}))*(?(open)(?!))\}";
 
         private static readonly Regex JsonCookieList = new(
             @"(?<name>""cookies?""\s*:\s*)(?<value>\[\s*" + JsonCookieListEntry + @"(?:\s*,\s*" + JsonCookieListEntry + @")*\s*\])",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // The same inside a JSON string, \"cookies\": [{\"name\": \"session\", \"value\": \"value\"}]
-        private const string EscapedJsonCookieListEntry = @"\{(?:[^{}\\]|\\.|\{(?:[^{}\\]|\\.)*\})*\}";
+        private const string EscapedJsonCookieListEntry = @"\{(?>[^{}\\]|\\.|(?<open>\{)|(?<-open>\}))*(?(open)(?!))\}";
 
         private static readonly Regex EscapedJsonCookieList = new(
             @"(?<name>\\""cookies?\\""\s*:\s*)(?<value>\[\s*" + EscapedJsonCookieListEntry + @"(?:\s*,\s*" + EscapedJsonCookieListEntry + @")*\s*\])",
