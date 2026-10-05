@@ -909,7 +909,8 @@ namespace HttpTrafficMonitor.Services
                 return false;
             }
 
-            string host = NormalizeReplayHost(uri.Host);
+            // The ASCII form, so "bücher.example" and "xn--bcher-kva.example" count as the one host they are
+            string host = NormalizeReplayHost(uri.IdnHost);
             foreach (string entry in ParseReplayHosts(_vm.AgentReplayHosts))
             {
                 if (entry.StartsWith("*.") ? host.EndsWith(entry[1..], StringComparison.Ordinal) : host == entry)
@@ -933,7 +934,7 @@ namespace HttpTrafficMonitor.Services
 
                 // An entry that is no host still counts as set, so a typo never lifts the limit; it just matches nothing
                 string host = Uri.TryCreate(entry, UriKind.Absolute, out var uri) && uri.Host.Length > 0
-                    ? NormalizeReplayHost(uri.Host)
+                    ? NormalizeReplayHost(uri.IdnHost)
                     : raw.ToLowerInvariant();
                 hosts.Add(subdomains ? "*." + host : host);
             }
