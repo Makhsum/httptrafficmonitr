@@ -81,9 +81,9 @@ namespace HttpTrafficMonitor.Services
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // The cookies an echo service lists already parsed, one property per cookie ("cookies": {"session": "value"}),
-        // also Express's "signedCookies" and PHP's "_COOKIE"; the cookie names stay; a cookie that holds an object
-        // of its own (Express's j: cookies) loses its values too
-        private const string JsonCookieObjectName = @"(?:cookies?|signedCookies|_COOKIE)";
+        // also Express's "signedCookies" and PHP's "_COOKIE" (a debug page may name it "$_COOKIE"); the cookie names stay;
+        // a cookie that holds an object of its own (Express's j: cookies) loses its values too
+        private const string JsonCookieObjectName = @"(?:cookies?|signedCookies|\$?_COOKIE)";
 
         private const string JsonObjectMember = @"[^{}""]|""(?:[^""\\]|\\.)*""";
 
@@ -97,14 +97,19 @@ namespace HttpTrafficMonitor.Services
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // The cookies a HAR-style echo service (mockbin and similar) lists as name/value objects,
-        // "cookies": [{"name": "session", "value": "value", "path": "/"}]; only each "value" goes
+        // "cookies": [{"name": "session", "value": "value", "path": "/"}]; only each "value" goes. An entry may hold
+        // an object of its own, as the partitionKey of a cookie Chrome DevTools or Puppeteer lists
+        private const string JsonCookieListEntry = @"\{(?:" + JsonObjectMember + @"|\{(?:" + JsonObjectMember + @")*\})*\}";
+
         private static readonly Regex JsonCookieList = new(
-            @"(?<name>""cookies?""\s*:\s*)(?<value>\[\s*\{(?:" + JsonObjectMember + @")*\}(?:\s*,\s*\{(?:" + JsonObjectMember + @")*\})*\s*\])",
+            @"(?<name>""cookies?""\s*:\s*)(?<value>\[\s*" + JsonCookieListEntry + @"(?:\s*,\s*" + JsonCookieListEntry + @")*\s*\])",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // The same inside a JSON string, \"cookies\": [{\"name\": \"session\", \"value\": \"value\"}]
+        private const string EscapedJsonCookieListEntry = @"\{(?:[^{}\\]|\\.|\{(?:[^{}\\]|\\.)*\})*\}";
+
         private static readonly Regex EscapedJsonCookieList = new(
-            @"(?<name>\\""cookies?\\""\s*:\s*)(?<value>\[\s*\{(?:[^{}\\]|\\.)*\}(?:\s*,\s*\{(?:[^{}\\]|\\.)*\})*\s*\])",
+            @"(?<name>\\""cookies?\\""\s*:\s*)(?<value>\[\s*" + EscapedJsonCookieListEntry + @"(?:\s*,\s*" + EscapedJsonCookieListEntry + @")*\s*\])",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // The "value" property of one entry of such a list
