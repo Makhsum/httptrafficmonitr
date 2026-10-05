@@ -47,9 +47,13 @@ namespace HttpTrafficMonitor.Services
 
         // "?token=value" or "&token=value" in a URL, a request line or a message that quotes a URL,
         // "#access_token=value" in the fragment of a redirect target,
-        // and "password=value" at the start of a form-encoded body or of a JSON string that echoes one
+        // and "password=value" at the start of a form-encoded body or of a JSON string that echoes one.
+        // ASP.NET Core's System.Text.Json writes the & of such a string as & and a + (a space of the form value) as +;
+        // a field after & counts like one after &, and an escaped character the value may hold does not end it,
+        // also when such an echo is quoted once more (\\u0026, \\u002B)
         private static readonly Regex UrlEncodedCredentialField = new(
-            @"(?<=^|[?&#""])(?<name>(?:" + string.Join("|", CredentialFields.Select(Regex.Escape)) + "|" + PasswordLikeField + @")=)(?<value>[^&#\s""'<>\\]+)",
+            @"(?<=^|[?&#""]|\\u0026)(?<name>(?:" + string.Join("|", CredentialFields.Select(Regex.Escape)) + "|" + PasswordLikeField + @")=)"
+                + @"(?<value>(?:[^&#\s""'<>\\]|\\+u(?!0026|0023|0022|0027|003C|003E)[0-9A-F]{4})+)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // The same URL-encoded inside another query value, as a redirect target carries it:
