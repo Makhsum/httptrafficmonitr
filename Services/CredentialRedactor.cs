@@ -69,6 +69,26 @@ namespace HttpTrafficMonitor.Services
             @"(?<name>\\""(?:" + string.Join("|", CredentialFields.Concat(ApiKeyHeaders).Select(Regex.Escape)) + "|" + PasswordLikeField + @")\\""\s*:\s*)(?<value>\\""(?:\\\\\\.|\\\\[^""\\]|\\[^""\\]|[^""\\])*\\""|-?\d[\d.eE+-]*)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+        // A Cookie or Set-Cookie header a server echoes back as JSON ("Cookie": "session=value", also a list of
+        // Set-Cookie strings); each cookie keeps its name like in the header itself
+        private static readonly Regex JsonCookieField = new(
+            @"(?<name>""(?<header>cookie|set-cookie)""\s*:\s*)(?<value>""(?:[^""\\]|\\.)*""|\[\s*""(?:[^""\\]|\\.)*""(?:\s*,\s*""(?:[^""\\]|\\.)*"")*\s*\])",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        // The same inside a JSON string, \"Cookie\": \"session=value\"
+        private static readonly Regex EscapedJsonCookieField = new(
+            @"(?<name>\\""(?<header>cookie|set-cookie)\\""\s*:\s*)(?<value>\\""(?:\\\\\\.|\\\\[^""\\]|\\[^""\\]|[^""\\])*\\"")",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex JsonString = new(@"""(?<text>(?:[^""\\]|\\.)*)""", RegexOptions.Compiled);
+
+        // A password or token field of a multipart/form-data body: the part's value, up to the next boundary line;
+        // a part with a filename is a file and stays
+        private static readonly Regex MultipartCredentialPart = new(
+            @"(?<name>^Content-Disposition:[ \t]*form-data;[ \t]*name=""(?:" + string.Join("|", CredentialFields.Select(Regex.Escape)) + "|" + PasswordLikeField + @")""[ \t]*\r?\n(?:[^\r\n]+\r?\n)*\r?\n)"
+                + @"(?<value>(?:(?!\r?\n--)[\s\S])+)",
+            RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Compiled);
+
         // A credential a service carries as a URL path segment: a Telegram bot token (/bot123456:AAE.../getUpdates,
         // also /file/bot.../), the secret of a Slack or Discord webhook URL; host and endpoint stay readable.
         // Matched by the path alone, since a request line (GET /bot.../getMe HTTP/1.1) has no host in front of it.
@@ -114,6 +134,13 @@ namespace HttpTrafficMonitor.Services
                 m.Groups["name"].Value + (m.Groups["value"].Value == "\"\"" ? "\"\"" : "\"" + Marker + "\""));
             redacted = EscapedJsonCredentialField.Replace(redacted, m =>
                 m.Groups["name"].Value + (m.Groups["value"].Value == "\\\"\\\"" ? "\\\"\\\"" : "\\\"" + Marker + "\\\""));
+            redacted = JsonCookieField.Replace(redacted, m =>
+                m.Groups["name"].Value + JsonString.Replace(m.Groups["value"].Value, s =>
+                    "\"" + RedactHeaderValue(m.Groups["header"].Value, s.Groups["text"].Value) + "\""));
+            redacted = EscapedJsonCookieField.Replace(redacted, m =>
+                m.Groups["name"].Value + "\\\"" + RedactHeaderValue(m.Groups["header"].Value, m.Groups["value"].Value[2..^2]) + "\\\"");
+            redacted = MultipartCredentialPart.Replace(redacted, m =>
+                m.Groups["name"].Value + Marker);
 
             if (redacted != text) RedactedAny = true;
             return redacted;
