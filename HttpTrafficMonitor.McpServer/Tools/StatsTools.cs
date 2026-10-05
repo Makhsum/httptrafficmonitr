@@ -71,7 +71,7 @@ public static class StatsTools
                 FormatDistribution(sb, processesEl, "process", 10);
             }
 
-            return sb.ToString().TrimEnd();
+            return TrafficTools.WithCredentialsNotice(sb.ToString().TrimEnd(), result);
         }
         catch (HttpRequestException ex)
         {
@@ -149,7 +149,7 @@ public static class StatsTools
                 }
             }
 
-            return sb.ToString().TrimEnd();
+            return TrafficTools.WithCredentialsNotice(sb.ToString().TrimEnd(), result);
         }
         catch (HttpRequestException ex)
         {

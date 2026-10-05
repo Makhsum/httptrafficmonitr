@@ -142,7 +142,7 @@ public static class TrafficTools
                 FormatTiming(sb, timing);
             }
 
-            return sb.ToString().TrimEnd();
+            return WithCredentialsNotice(sb.ToString().TrimEnd(), result);
         }
         catch (HttpRequestException ex)
         {
@@ -203,9 +203,9 @@ public static class TrafficTools
             var scheme = request.TryGetProperty("scheme", out var schemeEl) ? schemeEl.GetString() : null;
             var url = request.TryGetProperty("url", out var urlEl) ? urlEl.GetString() : "?";
 
-            return string.Equals(scheme, "http", StringComparison.OrdinalIgnoreCase)
+            return WithCredentialsNotice(string.Equals(scheme, "http", StringComparison.OrdinalIgnoreCase)
                 ? $"Request #{requestId} ({url}) was sent over plain HTTP, so it has no TLS details."
-                : $"No TLS details were recorded for request #{requestId} ({url}).";
+                : $"No TLS details were recorded for request #{requestId} ({url}).", request);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
@@ -243,7 +243,7 @@ public static class TrafficTools
                 sb.AppendLine("No WebSocket messages found.");
             }
 
-            return sb.ToString().TrimEnd();
+            return WithCredentialsNotice(sb.ToString().TrimEnd(), result);
         }
         catch (HttpRequestException ex)
         {
@@ -302,7 +302,17 @@ public static class TrafficTools
 
         sb.AppendLine();
         sb.AppendLine($"Total: {totalCount}");
-        return sb.ToString().TrimEnd();
+        return WithCredentialsNotice(sb.ToString().TrimEnd(), result);
+    }
+
+    // The app says when it hid credential values, so the agent knows it was deliberate
+    internal static string WithCredentialsNotice(string answer, JsonElement result)
+    {
+        if (result.ValueKind == JsonValueKind.Object
+            && result.TryGetProperty("credentialsNotice", out var noticeEl)
+            && noticeEl.ValueKind == JsonValueKind.String)
+            return answer + "\n\n" + noticeEl.GetString();
+        return answer;
     }
 
     // Same wording as the Duration column of the app: "-" while the response is still pending

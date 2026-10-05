@@ -73,6 +73,14 @@ public static class ReplayTools
                         sb.AppendLine($"  {name}: {value}");
                     }
                 }
+                else if (respHeaders.ValueKind == JsonValueKind.String)
+                {
+                    // The app sends the header block as "Name: Value" lines
+                    foreach (var line in (respHeaders.GetString() ?? "").Split('\n', StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        sb.AppendLine($"  {line.TrimEnd('\r')}");
+                    }
+                }
                 sb.AppendLine();
             }
             else if (result.TryGetProperty("headers", out var hdrs))
@@ -107,7 +115,7 @@ public static class ReplayTools
                 }
             }
 
-            return sb.ToString().TrimEnd();
+            return TrafficTools.WithCredentialsNotice(sb.ToString().TrimEnd(), result);
         }
         catch (HttpRequestException ex)
         {

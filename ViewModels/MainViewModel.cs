@@ -48,6 +48,7 @@ namespace HttpTrafficMonitor.ViewModels
         private bool _showBottomPanel = true;
         private bool _showBookmarksOnly;
         private bool _isDarkTheme = true;
+        private bool _revealCredentialsToAgents;
         private string _decodedRequestContent = string.Empty;
         private string _decodedResponseContent = string.Empty;
         private string _decodedRequestInfo = string.Empty;
@@ -164,6 +165,21 @@ namespace HttpTrafficMonitor.ViewModels
             get => _isDarkTheme;
             set { if (SetProperty(ref _isDarkTheme, value)) { _themeService.SetTheme(value); GraphsVm.ApplyTheme(value); } }
         }
+        // Read by the local API for every MCP tool answer; only this toolbar switch changes it
+        public bool RevealCredentialsToAgents
+        {
+            get => _revealCredentialsToAgents;
+            set
+            {
+                if (value && !_revealCredentialsToAgents && !ConfirmRevealCredentialsToAgents())
+                {
+                    // Turn the switch back off once the click that turned it on is done
+                    Application.Current.Dispatcher.BeginInvoke(() => OnPropertyChanged(nameof(RevealCredentialsToAgents)));
+                    return;
+                }
+                if (SetProperty(ref _revealCredentialsToAgents, value)) _themeService.SetRevealCredentialsToAgents(value);
+            }
+        }
         public bool IsAdvancedFilterActive { get => _isAdvancedFilterActive; set { if (SetProperty(ref _isAdvancedFilterActive, value)) FilteredRequests.Refresh(); } }
 
         // Decoded content
@@ -262,7 +278,19 @@ namespace HttpTrafficMonitor.ViewModels
 
             _themeService.Initialize();
             _isDarkTheme = _themeService.IsDarkTheme;
+            _revealCredentialsToAgents = _themeService.RevealCredentialsToAgents;
             GraphsVm.ApplyTheme(_isDarkTheme);
+        }
+
+        private static bool ConfirmRevealCredentialsToAgents()
+        {
+            var result = MessageBox.Show(
+                "AI agents connected over MCP will see Authorization, Cookie and token values in clear text.\n\nShow credentials to agents?",
+                "Agent sees credentials",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No);
+            return result == MessageBoxResult.Yes;
         }
 
         private void ExecuteStart()

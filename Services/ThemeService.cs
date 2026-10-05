@@ -14,10 +14,28 @@ namespace HttpTrafficMonitor.Services
 
         public bool IsDarkTheme { get; private set; } = true;
 
+        // settings.json is kept here, so the user's other toolbar choices are saved next to the theme
+        public bool RevealCredentialsToAgents { get; private set; }
+
         public void Initialize()
         {
             IsDarkTheme = LoadThemePreference();
+            RevealCredentialsToAgents = LoadSettings().RevealCredentialsToAgents;
             ApplyTheme();
+        }
+
+        public void SetRevealCredentialsToAgents(bool reveal)
+        {
+            RevealCredentialsToAgents = reveal;
+            try
+            {
+                var settings = LoadSettings();
+                settings.RevealCredentialsToAgents = reveal;
+                string dir = Path.GetDirectoryName(SettingsPath)!;
+                Directory.CreateDirectory(dir);
+                File.WriteAllText(SettingsPath, JsonConvert.SerializeObject(settings));
+            }
+            catch { }
         }
 
         public void ToggleTheme()
@@ -79,6 +97,9 @@ namespace HttpTrafficMonitor.Services
         private class AppSettings
         {
             public bool DarkTheme { get; set; } = true;
+
+            // Only the toolbar switch sets this; no route of the local API reaches it
+            public bool RevealCredentialsToAgents { get; set; }
         }
     }
 }

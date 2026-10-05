@@ -151,7 +151,7 @@ public static class AlertTools
                 sb.AppendLine("No alert events found.");
             }
 
-            return sb.ToString().TrimEnd();
+            return TrafficTools.WithCredentialsNotice(sb.ToString().TrimEnd(), result);
         }
         catch (HttpRequestException ex)
         {

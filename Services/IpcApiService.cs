@@ -358,6 +358,7 @@ namespace HttpTrafficMonitor.Services
             string? process = qs["process"];
             string? search = qs["search"];
             bool bookmarkedOnly = bool.TryParse(qs["bookmarkedOnly"], out var bm) && bm;
+            var redactor = NewRedactor();
 
             var result = InvokeOnUI(() =>
             {
@@ -381,9 +382,11 @@ namespace HttpTrafficMonitor.Services
                     filtered = filtered.Where(r => r.ProcessName.Contains(process, StringComparison.OrdinalIgnoreCase));
                 if (bookmarkedOnly)
                     filtered = filtered.Where(r => r.IsBookmarked);
+                // Match the URL the agent is shown, so a search cannot guess a hidden token
+                var searchRedactor = NewRedactor();
                 if (!string.IsNullOrEmpty(search))
                     filtered = filtered.Where(r =>
-                        r.Url.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+                        searchRedactor.Redact(r.Url).Contains(search, StringComparison.OrdinalIgnoreCase) ||
                         r.Host.Contains(search, StringComparison.OrdinalIgnoreCase) ||
                         r.ProcessName.Contains(search, StringComparison.OrdinalIgnoreCase) ||
                         r.Method.Contains(search, StringComparison.OrdinalIgnoreCase));
@@ -394,8 +397,9 @@ namespace HttpTrafficMonitor.Services
 
                 return new
                 {
-                    requests = page.Select(MapRequestSummary).ToArray(),
-                    totalCount
+                    requests = page.Select(e => MapRequestSummary(e, redactor)).ToArray(),
+                    totalCount,
+                    credentialsNotice = redactor.NoticeIfRedacted
                 };
             });
 
@@ -428,7 +432,7 @@ namespace HttpTrafficMonitor.Services
                 return;
             }
 
-            var detail = InvokeOnUI(() => MapRequestDetail(result));
+            var detail = InvokeOnUI(() => MapRequestDetail(result, NewRedactor()));
             WriteJson(response, detail);
         }
 
@@ -454,6 +458,7 @@ namespace HttpTrafficMonitor.Services
         private void HandleFilterRequests(HttpListenerRequest request, HttpListenerResponse response)
         {
             var body = ReadBody<FilterRequestBody>(request);
+            var redactor = NewRedactor();
 
             var result = InvokeOnUI(() =>
             {
@@ -474,7 +479,9 @@ namespace HttpTrafficMonitor.Services
                     }).ToList()
                 };
 
-                var filtered = snapshot.Where(e => preset.Evaluate(e)).ToList();
+                // Evaluate what the agent is shown, so a condition cannot guess a hidden value
+                var matchRedactor = NewRedactor();
+                var filtered = snapshot.Where(e => preset.Evaluate(AsShownToAgent(e, matchRedactor))).ToList();
                 int totalCount = filtered.Count;
                 int skip = body.Skip ?? 0;
                 int take = body.Take ?? 50;
@@ -482,8 +489,9 @@ namespace HttpTrafficMonitor.Services
 
                 return new
                 {
-                    requests = page.Select(MapRequestSummary).ToArray(),
-                    totalCount
+                    requests = page.Select(e => MapRequestSummary(e, redactor)).ToArray(),
+                    totalCount,
+                    credentialsNotice = redactor.NoticeIfRedacted
                 };
             });
 
@@ -719,6 +727,7 @@ namespace HttpTrafficMonitor.Services
             var qs = request.QueryString;
             int skip = int.TryParse(qs["skip"], out var s) ? s : 0;
             int take = int.TryParse(qs["take"], out var t) ? t : 50;
+            var redactor = NewRedactor();
 
             var result = InvokeOnUI(() =>
             {
@@ -727,15 +736,16 @@ namespace HttpTrafficMonitor.Services
                     timestamp = e.Timestamp.ToString("O"),
                     ruleName = e.Rule.Name,
                     ruleType = e.Rule.Type.ToString(),
-                    message = e.Message,
+                    message = redactor.Redact(e.Message),
                     requestId = e.Request.Id,
-                    requestUrl = e.Request.Url
+                    requestUrl = redactor.Redact(e.Request.Url)
                 }).ToArray();
 
                 return new
                 {
                     events,
-                    totalCount = _vm.AlertsVm.AlertEvents.Count
+                    totalCount = _vm.AlertsVm.AlertEvents.Count,
+                    credentialsNotice = redactor.NoticeIfRedacted
                 };
             });
 
@@ -885,14 +895,16 @@ namespace HttpTrafficMonitor.Services
                 headers,
                 body.Body);
 
+            var redactor = NewRedactor();
             WriteJson(response, new
             {
                 statusCode = result.StatusCode,
-                responseHeaders = result.ResponseHeaders,
+                responseHeaders = redactor.Redact(result.ResponseHeaders),
                 responseBody = result.ResponseBody,
                 responseSize = result.ResponseSize,
                 durationMs = result.Duration.TotalMilliseconds,
-                error = result.Error
+                error = result.Error,
+                credentialsNotice = redactor.NoticeIfRedacted
             });
         }
 
@@ -1145,6 +1157,7 @@ namespace HttpTrafficMonitor.Services
 
         private void HandleGetStats(HttpListenerResponse response)
         {
+            var redactor = NewRedactor();
             var data = InvokeOnUI(() =>
             {
                 List<HttpRequestEntry> snapshot;
@@ -1173,7 +1186,7 @@ namespace HttpTrafficMonitor.Services
                     .Where(r => r.Duration.HasValue)
                     .OrderByDescending(r => r.Duration!.Value)
                     .Take(5)
-                    .Select(MapRequestSummary)
+                    .Select(e => MapRequestSummary(e, redactor))
                     .ToArray();
 
                 return new
@@ -1189,7 +1202,8 @@ namespace HttpTrafficMonitor.Services
                     domainDistribution = domainDist,
                     processDistribution = processDist,
                     slowRequestCount = slowCount,
-                    slowestRequests = slowest
+                    slowestRequests = slowest,
+                    credentialsNotice = redactor.NoticeIfRedacted
                 };
             });
 
@@ -1246,10 +1260,12 @@ namespace HttpTrafficMonitor.Services
 
             var e1 = result.entry1;
             var e2 = result.entry2;
+            var redactor = NewRedactor();
 
-            string reqHeadersDiff = BuildDiff(e1.RequestHeaders ?? "", e2.RequestHeaders ?? "");
+            // Redact before diffing: a diff of the raw text would show both values side by side
+            string reqHeadersDiff = BuildDiff(redactor.Redact(e1.RequestHeaders ?? ""), redactor.Redact(e2.RequestHeaders ?? ""));
             string reqBodyDiff = BuildDiff(e1.RequestBody ?? "", e2.RequestBody ?? "");
-            string respHeadersDiff = BuildDiff(e1.ResponseHeaders ?? "", e2.ResponseHeaders ?? "");
+            string respHeadersDiff = BuildDiff(redactor.Redact(e1.ResponseHeaders ?? ""), redactor.Redact(e2.ResponseHeaders ?? ""));
             string respBodyDiff = BuildDiff(e1.ResponseBody ?? "", e2.ResponseBody ?? "");
 
             WriteJson(response, new
@@ -1258,7 +1274,7 @@ namespace HttpTrafficMonitor.Services
                 {
                     id = e1.Id,
                     method = e1.Method,
-                    url = e1.Url,
+                    url = redactor.Redact(e1.Url),
                     statusCode = e1.StatusCode,
                     durationMs = e1.Duration?.TotalMilliseconds
                 },
@@ -1266,7 +1282,7 @@ namespace HttpTrafficMonitor.Services
                 {
                     id = e2.Id,
                     method = e2.Method,
-                    url = e2.Url,
+                    url = redactor.Redact(e2.Url),
                     statusCode = e2.StatusCode,
                     durationMs = e2.Duration?.TotalMilliseconds
                 },
@@ -1276,7 +1292,8 @@ namespace HttpTrafficMonitor.Services
                     requestBody = reqBodyDiff,
                     responseHeaders = respHeadersDiff,
                     responseBody = respBodyDiff
-                }
+                },
+                credentialsNotice = redactor.NoticeIfRedacted
             });
         }
 
@@ -1355,6 +1372,7 @@ namespace HttpTrafficMonitor.Services
             var qs = request.QueryString;
             int skip = int.TryParse(qs["skip"], out var s) ? s : 0;
             int take = int.TryParse(qs["take"], out var t) ? t : 50;
+            var redactor = NewRedactor();
 
             var result = InvokeOnUI(() =>
             {
@@ -1369,8 +1387,9 @@ namespace HttpTrafficMonitor.Services
 
                 return new
                 {
-                    requests = page.Select(MapRequestSummary).ToArray(),
-                    totalCount
+                    requests = page.Select(e => MapRequestSummary(e, redactor)).ToArray(),
+                    totalCount,
+                    credentialsNotice = redactor.NoticeIfRedacted
                 };
             });
 
@@ -1475,6 +1494,7 @@ namespace HttpTrafficMonitor.Services
                 return;
             }
 
+            var redactor = NewRedactor();
             WriteJson(response, new
             {
                 isWebSocket = true,
@@ -1483,10 +1503,11 @@ namespace HttpTrafficMonitor.Services
                     timestamp = m.Timestamp.ToString("O"),
                     direction = m.Direction,
                     frameType = m.FrameType,
-                    payload = m.Payload,
+                    payload = redactor.Redact(m.Payload),
                     payloadLength = m.PayloadLength,
                     parentRequestId = m.ParentRequestId
-                }).ToArray()
+                }).ToArray(),
+                credentialsNotice = redactor.NoticeIfRedacted
             });
         }
 
@@ -1507,14 +1528,34 @@ namespace HttpTrafficMonitor.Services
             });
         }
 
-        private static object MapRequestSummary(HttpRequestEntry e)
+        // Every answer that shows captured traffic goes through one of these, unless the user opted out
+        private CredentialRedactor NewRedactor() => new(_vm.RevealCredentialsToAgents);
+
+        // A copy holding the values a filter may be evaluated on: the ones the agent is shown
+        private static HttpRequestEntry AsShownToAgent(HttpRequestEntry e, CredentialRedactor redactor)
+        {
+            return new HttpRequestEntry
+            {
+                Url = redactor.Redact(e.Url),
+                Host = e.Host,
+                Method = e.Method,
+                StatusCode = e.StatusCode,
+                ProcessName = e.ProcessName,
+                RequestHeaders = redactor.Redact(e.RequestHeaders),
+                RequestBody = e.RequestBody,
+                ResponseHeaders = redactor.RedactOrNull(e.ResponseHeaders),
+                ResponseBody = e.ResponseBody
+            };
+        }
+
+        private static object MapRequestSummary(HttpRequestEntry e, CredentialRedactor redactor)
         {
             return new
             {
                 id = e.Id,
                 timestamp = e.Timestamp.ToString("O"),
                 method = e.Method,
-                url = e.Url,
+                url = redactor.Redact(e.Url),
                 host = e.Host,
                 scheme = e.Scheme,
                 statusCode = e.StatusCode,
@@ -1565,14 +1606,14 @@ namespace HttpTrafficMonitor.Services
             };
         }
 
-        private static object MapRequestDetail(HttpRequestEntry e)
+        private static object MapRequestDetail(HttpRequestEntry e, CredentialRedactor redactor)
         {
             return new
             {
                 id = e.Id,
                 timestamp = e.Timestamp.ToString("O"),
                 method = e.Method,
-                url = e.Url,
+                url = redactor.Redact(e.Url),
                 host = e.Host,
                 scheme = e.Scheme,
                 statusCode = e.StatusCode,
@@ -1585,10 +1626,10 @@ namespace HttpTrafficMonitor.Services
                 isSlow = e.IsSlow,
                 isWebSocket = e.IsWebSocket,
                 isComplete = e.IsComplete,
-                requestHeaders = e.RequestHeaders,
+                requestHeaders = redactor.Redact(e.RequestHeaders),
                 requestBody = e.RequestBody,
                 requestContentType = e.RequestContentType,
-                responseHeaders = e.ResponseHeaders,
+                responseHeaders = redactor.RedactOrNull(e.ResponseHeaders),
                 responseBody = e.ResponseBody,
                 responseContentType = e.ResponseContentType,
                 responseTime = e.ResponseTime?.ToString("O"),
@@ -1622,7 +1663,7 @@ namespace HttpTrafficMonitor.Services
                         timestamp = m.Timestamp.ToString("O"),
                         direction = m.Direction,
                         frameType = m.FrameType,
-                        payload = m.Payload,
+                        payload = redactor.Redact(m.Payload),
                         payloadLength = m.PayloadLength
                     }).ToArray()
                     : null,
@@ -1633,7 +1674,8 @@ namespace HttpTrafficMonitor.Services
                     tlsHandshakeMs = e.TlsHandshakeMs,
                     timeToFirstByteMs = e.TimeToFirstByteMs,
                     contentDownloadMs = e.ContentDownloadMs
-                }
+                },
+                credentialsNotice = redactor.NoticeIfRedacted
             };
         }
 

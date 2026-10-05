@@ -156,6 +156,11 @@
                                  OnContent="Dark" OffContent="Light"
                                  AutomationProperties.AutomationId="Toolbar.ThemeToggle"
                                  Margin="4,0"/>
+                <ui:ToggleSwitch IsChecked="{Binding RevealCredentialsToAgents}"
+                                 OnContent="Agent sees credentials" OffContent="Agent sees credentials"
+                                 ToolTip="Off: MCP tool answers hide Authorization, Cookie and token values. Only you can change this here."
+                                 AutomationProperties.AutomationId="Toolbar.AgentCredentialsToggle"
+                                 Margin="4,0"/>
                 <ui:Button Icon="{ui:SymbolIcon Accessibility24}"
                            Command="{Binding ToggleBottomPanelCommand}"
                            ToolTip="Toggle Bottom Panel"

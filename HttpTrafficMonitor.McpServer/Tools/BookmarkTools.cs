@@ -72,7 +72,7 @@ public static class BookmarkTools
             }
 
             lines.Insert(0, $"Bookmarked requests ({count} total):");
-            return string.Join("\n", lines);
+            return TrafficTools.WithCredentialsNotice(string.Join("\n", lines), result);
         }
         catch (HttpRequestException ex)
         {
