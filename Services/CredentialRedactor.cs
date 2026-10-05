@@ -70,22 +70,22 @@ namespace HttpTrafficMonitor.Services
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // A Cookie or Set-Cookie header a server echoes back as JSON ("Cookie": "session=value", also a list of
-        // Set-Cookie strings); each cookie keeps its name like in the header itself
+        // Set-Cookie strings, and "HTTP_COOKIE" as a CGI or PHP server lists it); each cookie keeps its name like in the header itself
         private static readonly Regex JsonCookieField = new(
-            @"(?<name>""(?<header>cookie|set-cookie)""\s*:\s*)(?<value>""(?:[^""\\]|\\.)*""|\[\s*""(?:[^""\\]|\\.)*""(?:\s*,\s*""(?:[^""\\]|\\.)*"")*\s*\])",
+            @"(?<name>""(?:http_)?(?<header>cookie|set-cookie)""\s*:\s*)(?<value>""(?:[^""\\]|\\.)*""|\[\s*""(?:[^""\\]|\\.)*""(?:\s*,\s*""(?:[^""\\]|\\.)*"")*\s*\])",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // The same inside a JSON string, \"Cookie\": \"session=value\"
         private static readonly Regex EscapedJsonCookieField = new(
-            @"(?<name>\\""(?<header>cookie|set-cookie)\\""\s*:\s*)(?<value>\\""(?:\\\\\\.|\\\\[^""\\]|\\[^""\\]|[^""\\])*\\"")",
+            @"(?<name>\\""(?:http_)?(?<header>cookie|set-cookie)\\""\s*:\s*)(?<value>\\""(?:\\\\\\.|\\\\[^""\\]|\\[^""\\]|[^""\\])*\\"")",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static readonly Regex JsonString = new(@"""(?<text>(?:[^""\\]|\\.)*)""", RegexOptions.Compiled);
 
         // A password or token field of a multipart/form-data body: the part's value, up to the next boundary line;
-        // a part with a filename is a file and stays
+        // a part with a filename is a file and stays. The name may come without quotes, as .NET's MultipartFormDataContent writes it
         private static readonly Regex MultipartCredentialPart = new(
-            @"(?<name>^Content-Disposition:[ \t]*form-data;[ \t]*name=""(?:" + string.Join("|", CredentialFields.Select(Regex.Escape)) + "|" + PasswordLikeField + @")""[ \t]*\r?\n(?:[^\r\n]+\r?\n)*\r?\n)"
+            @"(?<name>^Content-Disposition:[ \t]*form-data[ \t]*;[ \t]*name=(?<quote>""?)(?:" + string.Join("|", CredentialFields.Select(Regex.Escape)) + "|" + PasswordLikeField + @")\k<quote>[ \t]*;?[ \t]*\r?\n(?:[^\r\n]+\r?\n)*\r?\n)"
                 + @"(?<value>(?:(?!\r?\n--)[\s\S])+)",
             RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Compiled);
 
