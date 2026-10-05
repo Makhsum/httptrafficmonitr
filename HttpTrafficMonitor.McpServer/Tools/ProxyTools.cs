@@ -13,7 +13,9 @@ public static class ProxyTools
     internal static readonly string[] ChangeToolNames =
     {
         nameof(start_proxy),
-        nameof(stop_proxy)
+        nameof(stop_proxy),
+        nameof(pause_capture),
+        nameof(resume_capture)
     };
 
     [McpServerTool, Description("Get the current status of the HTTP proxy including whether it's running, paused, the listening port, and request count.")]
@@ -106,6 +108,11 @@ public static class ProxyTools
 
             return "Capture paused successfully.";
         }
+        catch (IpcApiException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
+        {
+            // The app refuses changes from agents until the user allows them
+            return $"The capture was not paused: {ex.ApiError ?? ex.Message}";
+        }
         catch (HttpRequestException ex)
         {
             return $"Error: {ex.Message}. Make sure HttpTrafficMonitor is running.";
@@ -123,6 +130,11 @@ public static class ProxyTools
                 return msgEl.GetString() ?? "Capture resumed successfully.";
 
             return "Capture resumed successfully.";
+        }
+        catch (IpcApiException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
+        {
+            // The app refuses changes from agents until the user allows them
+            return $"The capture was not resumed: {ex.ApiError ?? ex.Message}";
         }
         catch (HttpRequestException ex)
         {

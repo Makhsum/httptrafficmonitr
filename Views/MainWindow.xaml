@@ -163,7 +163,7 @@
                                  Margin="4,0"/>
                 <ui:ToggleSwitch IsChecked="{Binding AllowAgentChanges}"
                                  OnContent="Agent may make changes" OffContent="Agent may make changes"
-                                 ToolTip="Off: an agent connected over MCP can replay only GET requests and is not offered the tools that clear the captured requests, start or stop the proxy, load a session, or change exclusions, alert rules or the Auto-Responder. Only you can change this here."
+                                 ToolTip="Off: an agent connected over MCP can replay only GET requests and is not offered the tools that clear the captured requests, start or stop the proxy, pause or resume the capture, load a session, or change exclusions, alert rules or the Auto-Responder. Only you can change this here."
                                  AutomationProperties.AutomationId="Toolbar.AgentChangesToggle"
                                  Margin="4,0"/>
                 <TextBlock Text="Agent replay hosts:" VerticalAlignment="Center" Margin="4,0,4,0"

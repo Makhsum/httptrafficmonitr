@@ -341,12 +341,14 @@ namespace HttpTrafficMonitor.Services
 
         private void HandleProxyPause(HttpListenerResponse response)
         {
+            if (!AgentChangesAllowed(response)) return;
             InvokeOnUI(() => _vm.IsPaused = true);
             WriteJson(response, new { success = true });
         }
 
         private void HandleProxyResume(HttpListenerResponse response)
         {
+            if (!AgentChangesAllowed(response)) return;
             InvokeOnUI(() => _vm.IsPaused = false);
             WriteJson(response, new { success = true });
         }
@@ -903,7 +905,7 @@ namespace HttpTrafficMonitor.Services
         private bool AgentChangesAllowed(HttpListenerResponse response)
         {
             if (_vm.AllowAgentChanges) return true;
-            WriteError(response, "The app only lets agents read: a replay may only use GET, no session may be loaded, and the captured requests, the proxy, exclusions, alert rules and the Auto-Responder cannot be changed. The user can allow changes with the toolbar switch \"Agent may make changes\" in HTTP Traffic Monitor.", 403);
+            WriteError(response, "The app only lets agents read: a replay may only use GET, no session may be loaded, the capture may not be paused or resumed, and the captured requests, the proxy, exclusions, alert rules and the Auto-Responder cannot be changed. The user can allow changes with the toolbar switch \"Agent may make changes\" in HTTP Traffic Monitor.", 403);
             return false;
         }
 
