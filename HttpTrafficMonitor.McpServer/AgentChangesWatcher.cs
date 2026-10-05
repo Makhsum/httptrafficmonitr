@@ -62,15 +62,21 @@ public class AgentChangesWatcher : BackgroundService
         }
     }
 
-    // An app that cannot be reached, or one too old to know the setting, allows no changes
+    // An app that cannot be reached, one too old to know the setting, or something else answering on
+    // its port allows no changes; none of them may stop the MCP server from starting
     private async Task<bool> IsAllowedAsync()
     {
         try
         {
             var result = await _client.GetAsync("/agent-changes");
-            return result.TryGetProperty("allowed", out var allowed) && allowed.ValueKind == JsonValueKind.True;
+            return result.ValueKind == JsonValueKind.Object
+                && result.TryGetProperty("allowed", out var allowed) && allowed.ValueKind == JsonValueKind.True;
         }
         catch (HttpRequestException)
+        {
+            return false;
+        }
+        catch (JsonException)
         {
             return false;
         }
