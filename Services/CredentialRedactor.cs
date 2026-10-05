@@ -167,8 +167,8 @@ namespace HttpTrafficMonitor.Services
         // The headers a HAR-style echo service lists the same way, "headers": [{"name": "cookie", "value": "session=value"},
         // {"name": "authorization", "value": "Bearer value"}]; a credential header's "value" goes like in the header itself.
         // A browser's webRequest lists them as "requestHeaders" / "responseHeaders", a Postman collection as
-        // "header": [{"key": "Authorization", "value": "Bearer value"}]
-        private const string JsonHeaderListKey = @"(?:request|response)?headers?";
+        // "header": [{"key": "Authorization", "value": "Bearer value"}], a Postman v1 collection as "headerData": [...]
+        private const string JsonHeaderListKey = @"(?:(?:request|response)?headers?|headerData)";
 
         private static readonly Regex JsonHeaderList = new(
             @"(?<name>""" + JsonHeaderListKey + @"""\s*:\s*)(?<value>\[\s*" + JsonListEntry + @"(?:\s*,\s*" + JsonListEntry + @")*\s*\])",
@@ -250,9 +250,10 @@ namespace HttpTrafficMonitor.Services
         // The auth block of a Postman collection lists its credentials as key/value entries, "bearer": [{"key": "token", "value": "value"}],
         // also basic, apikey, oauth2 and the other auth types; an environment or a collection lists its variables the same way,
         // "values": [{"key": "access_token", "value": "value"}], "variable": [...], and a request its query parameters and form body,
-        // "query": [...], "urlencoded": [...], "formdata": [...], in a v1 collection "queryParams": [...] and "data": [...].
+        // "query": [...], "urlencoded": [...], "formdata": [...], in a v1 collection "queryParams": [...] and "data": [...],
+        // and its path variables as "pathVariableData": [...].
         // Only the "value" of an entry whose key names a credential goes; the auth type and the keys stay
-        private const string PostmanListKey = @"(?:bearer|basic|digest|apikey|oauth1|oauth2|hawk|awsv4|ntlm|akamai|edgegrid|jwt|asap|values|variable|query|urlencoded|formdata|queryParams|data)";
+        private const string PostmanListKey = @"(?:bearer|basic|digest|apikey|oauth1|oauth2|hawk|awsv4|ntlm|akamai|edgegrid|jwt|asap|values|variable|query|urlencoded|formdata|queryParams|data|pathVariableData)";
 
         private static readonly Regex JsonPostmanList = new(
             @"(?<name>""(?<list>" + PostmanListKey + @")""\s*:\s*)(?<value>\[\s*" + JsonListEntry + @"(?:\s*,\s*" + JsonListEntry + @")*\s*\])",
