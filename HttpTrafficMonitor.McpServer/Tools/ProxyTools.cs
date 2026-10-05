@@ -1,5 +1,6 @@
 using ModelContextProtocol.Server;
 using System.ComponentModel;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 
@@ -8,6 +9,13 @@ namespace HttpTrafficMonitor.McpServer.Tools;
 [McpServerToolType]
 public static class ProxyTools
 {
+    // Offered only while the user allows agent changes in the app (see AgentChangesWatcher)
+    internal static readonly string[] ChangeToolNames =
+    {
+        nameof(start_proxy),
+        nameof(stop_proxy)
+    };
+
     [McpServerTool, Description("Get the current status of the HTTP proxy including whether it's running, paused, the listening port, and request count.")]
     public static async Task<string> get_proxy_status(IpcClient client)
     {
@@ -52,6 +60,11 @@ public static class ProxyTools
 
             return "Proxy started successfully.";
         }
+        catch (IpcApiException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
+        {
+            // The app refuses changes from agents until the user allows them
+            return $"The proxy was not started: {ex.ApiError ?? ex.Message}";
+        }
         catch (HttpRequestException ex)
         {
             return $"Error: {ex.Message}. Make sure HttpTrafficMonitor is running.";
@@ -69,6 +82,11 @@ public static class ProxyTools
                 return msgEl.GetString() ?? "Proxy stopped successfully.";
 
             return "Proxy stopped successfully.";
+        }
+        catch (IpcApiException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
+        {
+            // The app refuses changes from agents until the user allows them
+            return $"The proxy was not stopped: {ex.ApiError ?? ex.Message}";
         }
         catch (HttpRequestException ex)
         {

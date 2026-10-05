@@ -8,6 +8,12 @@ namespace HttpTrafficMonitor.McpServer.Tools;
 [McpServerToolType]
 public static class SessionTools
 {
+    // Offered only while the user allows agent changes in the app (see AgentChangesWatcher)
+    internal static readonly string[] ChangeToolNames =
+    {
+        nameof(load_session)
+    };
+
     [McpServerTool, Description("Save the current HTTP traffic session to an .hts file")]
     public static async Task<string> save_session(
         IpcClient client,
@@ -47,6 +53,11 @@ public static class SessionTools
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.UnprocessableEntity)
         {
             return $"'{filePath}' could not be read as a session. Load a .hts file saved by HttpTrafficMonitor.";
+        }
+        catch (IpcApiException ex) when (ex.StatusCode == HttpStatusCode.Forbidden && ex.ApiError?.Contains("Agent may make changes") == true)
+        {
+            // The app refuses changes from agents until the user allows them; a locked file is a 403 as well
+            return $"The session was not loaded: {ex.ApiError}";
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
         {

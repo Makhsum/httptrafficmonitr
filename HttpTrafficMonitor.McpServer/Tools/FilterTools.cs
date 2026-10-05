@@ -1,5 +1,6 @@
 using ModelContextProtocol.Server;
 using System.ComponentModel;
+using System.Net;
 using System.Text;
 using System.Text.Json;
 
@@ -8,6 +9,13 @@ namespace HttpTrafficMonitor.McpServer.Tools;
 [McpServerToolType]
 public static class FilterTools
 {
+    // Offered only while the user allows agent changes in the app (see AgentChangesWatcher);
+    // get_exclusions reads the exclusions without it
+    internal static readonly string[] ChangeToolNames =
+    {
+        nameof(manage_exclusions)
+    };
+
     [McpServerTool, Description(
         "Filter captured HTTP requests using advanced conditions. " +
         "Fields: URL, Host, Method, StatusCode, Process, RequestHeaders, RequestBody, ResponseHeaders, ResponseBody. " +
@@ -49,6 +57,20 @@ public static class FilterTools
         }
     }
 
+    [McpServerTool, Description("Get the domain and process exclusions. Excluded domains and processes will not be captured by the proxy.")]
+    public static async Task<string> get_exclusions(IpcClient client)
+    {
+        try
+        {
+            var result = await client.GetAsync("/exclusions");
+            return FormatExclusions(result);
+        }
+        catch (HttpRequestException ex)
+        {
+            return $"Error: {ex.Message}. Make sure HttpTrafficMonitor is running.";
+        }
+    }
+
     [McpServerTool, Description("Get or set domain and process exclusions. Excluded domains and processes will not be captured by the proxy.")]
     public static async Task<string> manage_exclusions(
         IpcClient client,
@@ -61,48 +83,7 @@ public static class FilterTools
             if (action.Equals("get", StringComparison.OrdinalIgnoreCase))
             {
                 var result = await client.GetAsync("/exclusions");
-                var sb = new StringBuilder();
-                sb.AppendLine("=== Exclusions ===");
-                sb.AppendLine();
-
-                sb.AppendLine("Excluded Domains:");
-                if (result.TryGetProperty("domains", out var domainsEl) && domainsEl.ValueKind == JsonValueKind.Array)
-                {
-                    if (domainsEl.GetArrayLength() == 0)
-                    {
-                        sb.AppendLine("  (none)");
-                    }
-                    else
-                    {
-                        foreach (var d in domainsEl.EnumerateArray())
-                            sb.AppendLine($"  - {d.GetString()}");
-                    }
-                }
-                else
-                {
-                    sb.AppendLine("  (none)");
-                }
-
-                sb.AppendLine();
-                sb.AppendLine("Excluded Processes:");
-                if (result.TryGetProperty("processes", out var processesEl) && processesEl.ValueKind == JsonValueKind.Array)
-                {
-                    if (processesEl.GetArrayLength() == 0)
-                    {
-                        sb.AppendLine("  (none)");
-                    }
-                    else
-                    {
-                        foreach (var p in processesEl.EnumerateArray())
-                            sb.AppendLine($"  - {p.GetString()}");
-                    }
-                }
-                else
-                {
-                    sb.AppendLine("  (none)");
-                }
-
-                return sb.ToString().TrimEnd();
+                return FormatExclusions(result);
             }
             else if (action.Equals("set", StringComparison.OrdinalIgnoreCase))
             {
@@ -140,10 +121,61 @@ public static class FilterTools
                 return "Error: action must be 'get' or 'set'.";
             }
         }
+        catch (IpcApiException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
+        {
+            // The app refuses changes from agents until the user allows them
+            return $"The exclusions were not changed: {ex.ApiError ?? ex.Message}";
+        }
         catch (HttpRequestException ex)
         {
             return $"Error: {ex.Message}. Make sure HttpTrafficMonitor is running.";
         }
+    }
+
+    private static string FormatExclusions(JsonElement result)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("=== Exclusions ===");
+        sb.AppendLine();
+
+        sb.AppendLine("Excluded Domains:");
+        if (result.TryGetProperty("domains", out var domainsEl) && domainsEl.ValueKind == JsonValueKind.Array)
+        {
+            if (domainsEl.GetArrayLength() == 0)
+            {
+                sb.AppendLine("  (none)");
+            }
+            else
+            {
+                foreach (var d in domainsEl.EnumerateArray())
+                    sb.AppendLine($"  - {d.GetString()}");
+            }
+        }
+        else
+        {
+            sb.AppendLine("  (none)");
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("Excluded Processes:");
+        if (result.TryGetProperty("processes", out var processesEl) && processesEl.ValueKind == JsonValueKind.Array)
+        {
+            if (processesEl.GetArrayLength() == 0)
+            {
+                sb.AppendLine("  (none)");
+            }
+            else
+            {
+                foreach (var p in processesEl.EnumerateArray())
+                    sb.AppendLine($"  - {p.GetString()}");
+            }
+        }
+        else
+        {
+            sb.AppendLine("  (none)");
+        }
+
+        return sb.ToString().TrimEnd();
     }
 
     [McpServerTool, Description("List all saved filter presets that can be used to quickly apply common filter configurations.")]

@@ -9,6 +9,13 @@ namespace HttpTrafficMonitor.McpServer.Tools;
 [McpServerToolType]
 public static class AlertTools
 {
+    // Offered only while the user allows agent changes in the app (see AgentChangesWatcher)
+    internal static readonly string[] ChangeToolNames =
+    {
+        nameof(add_alert_rule),
+        nameof(delete_alert_rule)
+    };
+
     [McpServerTool, Description("List all alert rules with their type, status, and configuration.")]
     public static async Task<string> get_alert_rules(IpcClient client)
     {
@@ -89,6 +96,11 @@ public static class AlertTools
             // The app names what is wrong: an unknown type, a missing name, or a rule that could never fire
             return $"No alert rule was created: {ex.ApiError ?? ex.Message}";
         }
+        catch (IpcApiException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
+        {
+            // The app refuses changes from agents until the user allows them
+            return $"No alert rule was created: {ex.ApiError ?? ex.Message}";
+        }
         catch (HttpRequestException ex)
         {
             return $"Error: {ex.Message}. Make sure HttpTrafficMonitor is running.";
@@ -108,6 +120,11 @@ public static class AlertTools
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
             return $"No alert rule with ID '{ruleId}' exists. Use get_alert_rules to list the rules.";
+        }
+        catch (IpcApiException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
+        {
+            // The app refuses changes from agents until the user allows them
+            return $"The alert rule was not deleted: {ex.ApiError ?? ex.Message}";
         }
         catch (HttpRequestException ex)
         {

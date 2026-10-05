@@ -9,6 +9,12 @@ namespace HttpTrafficMonitor.McpServer.Tools;
 [McpServerToolType]
 public static class TrafficTools
 {
+    // Offered only while the user allows agent changes in the app (see AgentChangesWatcher)
+    internal static readonly string[] ChangeToolNames =
+    {
+        nameof(clear_requests)
+    };
+
     [McpServerTool, Description("Get a list of captured HTTP requests with optional filtering by method, domain, process, or search text. Returns a compact summary of each request.")]
     public static async Task<string> get_requests(
         IpcClient client,
@@ -161,6 +167,11 @@ public static class TrafficTools
                 return msgEl.GetString() ?? "All requests cleared.";
 
             return "All requests cleared.";
+        }
+        catch (IpcApiException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
+        {
+            // The app refuses changes from agents until the user allows them
+            return $"The requests were not cleared: {ex.ApiError ?? ex.Message}";
         }
         catch (HttpRequestException ex)
         {

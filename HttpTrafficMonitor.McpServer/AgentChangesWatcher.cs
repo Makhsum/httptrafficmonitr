@@ -6,11 +6,20 @@ using HttpTrafficMonitor.McpServer.Tools;
 
 namespace HttpTrafficMonitor.McpServer;
 
-// Offers the tools that change the Auto-Responder only while the user allows agent changes in the app.
-// The app refuses those changes itself as well; hiding the tools keeps an agent from trying them at all.
+// Offers the tools that change the capture, the proxy, exclusions, alert rules and the Auto-Responder only
+// while the user allows agent changes in the app. The app refuses those changes itself as well; hiding the
+// tools keeps an agent from trying them at all.
 public class AgentChangesWatcher : BackgroundService
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(2);
+
+    private static readonly string[] ChangeToolNames = TrafficTools.ChangeToolNames
+        .Concat(ProxyTools.ChangeToolNames)
+        .Concat(SessionTools.ChangeToolNames)
+        .Concat(FilterTools.ChangeToolNames)
+        .Concat(AlertTools.ChangeToolNames)
+        .Concat(AutoResponderTools.ChangeToolNames)
+        .ToArray();
 
     private readonly IpcClient _client;
     private readonly McpServerPrimitiveCollection<McpServerTool> _tools;
@@ -29,7 +38,7 @@ public class AgentChangesWatcher : BackgroundService
         toolsCapability.ListChanged = true;
 
         // Settled before the MCP server starts, so the client's first tool list is already the right one
-        _changeTools = _tools.Where(t => AutoResponderTools.ChangeToolNames.Contains(t.ProtocolTool.Name)).ToList();
+        _changeTools = _tools.Where(t => ChangeToolNames.Contains(t.ProtocolTool.Name)).ToList();
         if (!IsAllowedAsync().GetAwaiter().GetResult())
         {
             foreach (var tool in _changeTools)

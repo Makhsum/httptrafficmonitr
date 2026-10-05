@@ -293,6 +293,7 @@ namespace HttpTrafficMonitor.Services
 
         private void HandleProxyStart(HttpListenerResponse response)
         {
+            if (!AgentChangesAllowed(response)) return;
             var proxy = _vm.ProxyServiceInstance;
             string? error = null;
 
@@ -330,6 +331,7 @@ namespace HttpTrafficMonitor.Services
 
         private void HandleProxyStop(HttpListenerResponse response)
         {
+            if (!AgentChangesAllowed(response)) return;
             InvokeOnUI(() => _vm.ExecuteStop());
             WriteJson(response, new { success = true });
         }
@@ -440,6 +442,7 @@ namespace HttpTrafficMonitor.Services
 
         private void HandleDeleteRequests(HttpListenerResponse response)
         {
+            if (!AgentChangesAllowed(response)) return;
             InvokeOnUI(() =>
             {
                 lock (_vm.CollectionLock) { _vm.AllRequests.Clear(); }
@@ -584,6 +587,7 @@ namespace HttpTrafficMonitor.Services
 
         private void HandleSetExclusions(HttpListenerRequest request, HttpListenerResponse response)
         {
+            if (!AgentChangesAllowed(response)) return;
             var body = ReadBody<ExclusionsDto>(request);
 
             InvokeOnUI(() =>
@@ -646,6 +650,7 @@ namespace HttpTrafficMonitor.Services
 
         private void HandleAddAlertRule(HttpListenerRequest request, HttpListenerResponse response)
         {
+            if (!AgentChangesAllowed(response)) return;
             var body = ReadBody<AlertRuleDto>(request);
 
             if (string.IsNullOrWhiteSpace(body.Name))
@@ -703,6 +708,7 @@ namespace HttpTrafficMonitor.Services
 
         private void HandleDeleteAlertRule(string path, HttpListenerResponse response)
         {
+            if (!AgentChangesAllowed(response)) return;
             string id = path.Substring("/api/alerts/rules/".Length);
 
             bool found = InvokeOnUI(() =>
@@ -883,7 +889,8 @@ namespace HttpTrafficMonitor.Services
 
         // ======================= AGENT CHANGES =======================
 
-        // Read by the MCP server to decide whether it offers the tools that change the Auto-Responder
+        // Read by the MCP server to decide whether it offers the tools that change the capture, the proxy,
+        // exclusions, alert rules and the Auto-Responder
         private void HandleGetAgentChanges(HttpListenerResponse response)
         {
             WriteJson(response, new { allowed = _vm.AllowAgentChanges });
@@ -893,7 +900,7 @@ namespace HttpTrafficMonitor.Services
         private bool AgentChangesAllowed(HttpListenerResponse response)
         {
             if (_vm.AllowAgentChanges) return true;
-            WriteError(response, "The app only lets agents read: a replay may only use GET and the Auto-Responder cannot be changed. The user can allow changes with the toolbar switch \"Agent may make changes\" in HTTP Traffic Monitor.", 403);
+            WriteError(response, "The app only lets agents read: a replay may only use GET, no session may be loaded, and the captured requests, the proxy, exclusions, alert rules and the Auto-Responder cannot be changed. The user can allow changes with the toolbar switch \"Agent may make changes\" in HTTP Traffic Monitor.", 403);
             return false;
         }
 
@@ -1113,6 +1120,7 @@ namespace HttpTrafficMonitor.Services
 
         private void HandleSessionLoad(HttpListenerRequest request, HttpListenerResponse response)
         {
+            if (!AgentChangesAllowed(response)) return;
             var body = ReadBody<SessionLoadDto>(request);
 
             if (string.IsNullOrWhiteSpace(body.FilePath))
