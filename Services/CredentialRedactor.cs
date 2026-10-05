@@ -356,7 +356,8 @@ namespace HttpTrafficMonitor.Services
 
         // The same for a single-quoted script string, var n = '{\\\"token\\\":\\\"value\\\"}': no double-quoted string stands
         // around it, so the quotes inside follow an odd run of backslashes and the rule above never pairs them. Only a string
-        // holding a quote two levels deep is unquoted; an apostrophe in prose pairs text that holds none
+        // holding a quote two levels deep, or one ASP.NET Core's encoder wrote as \u0022 (JSON.parse('{\u0022apiKey\u0022: ...}')),
+        // is unquoted; an apostrophe in prose pairs text that holds none
         private static readonly Regex ScriptStringQuotedTwice = new(
             @"(?<=(?:^|[^\\])(?:\\\\)*)'(?<text>(?:[^'\\]|\\.)*)'",
             RegexOptions.Compiled);
@@ -535,7 +536,7 @@ namespace HttpTrafficMonitor.Services
         private string RedactQuotedTwice(Match m, char quote, List<string> quotedTwice, string placeholderKey)
         {
             string text = m.Groups["text"].Value;
-            if (quote == '\'' ? !text.Contains(QuoteTwoLevelsDeep)
+            if (quote == '\'' ? !text.Contains(QuoteTwoLevelsDeep) && !text.Contains(QuoteEscapedAsUnicode, StringComparison.OrdinalIgnoreCase)
                 : !text.Contains(QuoteTwoLevelsDeep) && !text.Contains(LineBreakTwoLevelsDeep) && !text.Contains(QuoteEscapedAsUnicode, StringComparison.OrdinalIgnoreCase)) return m.Value;
             // a raw line break or other control character never stands in a JSON string, only in text a stray quote paired
             // the wrong way, which quoting back would rewrite
@@ -556,6 +557,7 @@ namespace HttpTrafficMonitor.Services
             string redacted = Redact(unquoted);
             if (redacted == unquoted) return m.Value;
             // Newtonsoft leaves a double quote bare inside a single-quoted string; the script escaped it, since it holds one two levels deep
+            // or as \u0022
             string requoted = JsonConvert.ToString(redacted, quote);
             quotedTwice.Add(quote == '\'' ? requoted.Replace("\"", "\\\"") : requoted);
             return "\"\u0001" + placeholderKey + ":" + (quotedTwice.Count - 1) + "\u0001\"";
