@@ -303,9 +303,9 @@ namespace HttpTrafficMonitor.Services
 
         // The same inside a JSON string, as a request inspector echoes the raw body, "data": "--boundary\r\nContent-Disposition:
         // form-data; name=\"password\"\r\n\r\nvalue\r\n--boundary--"; the line breaks arrive escaped, and the value
-        // ends at the next boundary line or at the end of the string
+        // ends at the next boundary line or at the end of the string. ASP.NET Core's System.Text.Json writes the quotes as \u0022
         private static readonly Regex EscapedMultipartCredentialPart = new(
-            @"(?<name>(?<=(?<!\\)\\n)Content-Disposition:[ \t]*form-data[ \t]*;[ \t]*name=(?<quote>(?:\\"")?)(?:" + string.Join("|", CredentialFields.Select(Regex.Escape)) + "|" + PasswordLikeField + @")\k<quote>[ \t]*;?[ \t]*(?:\\r)?\\n(?:(?:[^""\\]|\\[^rn])+(?:\\r)?\\n)*(?:\\r)?\\n)"
+            @"(?<name>(?<=(?<!\\)\\n)Content-Disposition:[ \t]*form-data[ \t]*;[ \t]*name=(?<quote>(?:\\""|\\u0022)?)(?:" + string.Join("|", CredentialFields.Select(Regex.Escape)) + "|" + PasswordLikeField + @")\k<quote>[ \t]*;?[ \t]*(?:\\r)?\\n(?:(?:[^""\\]|\\[^rn])+(?:\\r)?\\n)*(?:\\r)?\\n)"
                 + @"(?<value>(?:(?!(?:\\r)?\\n--)(?:[^""\\]|\\.))+)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
@@ -335,6 +335,9 @@ namespace HttpTrafficMonitor.Services
             RegexOptions.Compiled);
 
         private const string QuoteTwoLevelsDeep = @"\\\""";
+
+        // A multipart body two levels deep may hold no quote at all, as .NET writes the part names without quotes
+        private const string LineBreakTwoLevelsDeep = @"\\n";
 
         // Such a string waits behind a placeholder while the other rules run, since they would read its second level
         // as the first: a header text there would lose every line after the Authorization line
@@ -471,7 +474,7 @@ namespace HttpTrafficMonitor.Services
         private string RedactQuotedTwice(Match m, List<string> quotedTwice)
         {
             string text = m.Groups["text"].Value;
-            if (!text.Contains(QuoteTwoLevelsDeep)) return m.Value;
+            if (!text.Contains(QuoteTwoLevelsDeep) && !text.Contains(LineBreakTwoLevelsDeep)) return m.Value;
 
             string? unquoted;
             try
