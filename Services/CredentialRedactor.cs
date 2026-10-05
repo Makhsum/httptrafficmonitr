@@ -121,6 +121,32 @@ namespace HttpTrafficMonitor.Services
             @"(?<name>\\""value\\""\s*:\s*)(?<value>\\""(?:\\\\\\.|\\\\[^""\\]|\\[^""\\]|[^""\\])*\\""|-?\d[\d.eE+-]*)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+        // The headers a HAR-style echo service lists the same way, "headers": [{"name": "cookie", "value": "session=value"},
+        // {"name": "authorization", "value": "Bearer value"}]; a credential header's "value" goes like in the header itself
+        private static readonly Regex JsonHeaderList = new(
+            @"(?<name>""headers""\s*:\s*)(?<value>\[\s*" + JsonCookieListEntry + @"(?:\s*,\s*" + JsonCookieListEntry + @")*\s*\])",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        // The same inside a JSON string, \"headers\": [{\"name\": \"cookie\", \"value\": \"session=value\"}]
+        private static readonly Regex EscapedJsonHeaderList = new(
+            @"(?<name>\\""headers\\""\s*:\s*)(?<value>\[\s*" + EscapedJsonCookieListEntry + @"(?:\s*,\s*" + EscapedJsonCookieListEntry + @")*\s*\])",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        // One entry of such a list and its "name" property, when that names a credential header
+        private static readonly Regex JsonHeaderListEntry = new(JsonCookieListEntry, RegexOptions.Compiled);
+
+        private static readonly Regex EscapedJsonHeaderListEntry = new(EscapedJsonCookieListEntry, RegexOptions.Compiled);
+
+        private static readonly Regex JsonHeaderListName = new(
+            @"""name""\s*:\s*""(?<header>authorization|proxy-authorization|cookie|set-cookie|"
+                + string.Join("|", ApiKeyHeaders.Select(Regex.Escape)) + @")""",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex EscapedJsonHeaderListName = new(
+            @"\\""name\\""\s*:\s*\\""(?<header>authorization|proxy-authorization|cookie|set-cookie|"
+                + string.Join("|", ApiKeyHeaders.Select(Regex.Escape)) + @")\\""",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         // One "name": "value" property of such an object
         private static readonly Regex JsonCookieProperty = new(
             @"(?<name>""(?:[^""\\]|\\.)*""\s*:\s*)(?<value>""(?:[^""\\]|\\.)*""|-?\d[\d.eE+-]*)",
@@ -201,6 +227,28 @@ namespace HttpTrafficMonitor.Services
             redacted = EscapedJsonCookieList.Replace(redacted, m =>
                 m.Groups["name"].Value + EscapedJsonCookieListValue.Replace(m.Groups["value"].Value, p =>
                     p.Groups["name"].Value + (p.Groups["value"].Value == "\\\"\\\"" ? "\\\"\\\"" : "\\\"" + Marker + "\\\"")));
+            redacted = JsonHeaderList.Replace(redacted, m =>
+                m.Groups["name"].Value + JsonHeaderListEntry.Replace(m.Groups["value"].Value, e =>
+                {
+                    Match header = JsonHeaderListName.Match(e.Value);
+                    if (!header.Success) return e.Value;
+                    return JsonCookieListValue.Replace(e.Value, p =>
+                    {
+                        string value = p.Groups["value"].Value;
+                        return p.Groups["name"].Value + "\"" + RedactHeaderValue(header.Groups["header"].Value, value.StartsWith("\"") ? value[1..^1] : value) + "\"";
+                    });
+                }));
+            redacted = EscapedJsonHeaderList.Replace(redacted, m =>
+                m.Groups["name"].Value + EscapedJsonHeaderListEntry.Replace(m.Groups["value"].Value, e =>
+                {
+                    Match header = EscapedJsonHeaderListName.Match(e.Value);
+                    if (!header.Success) return e.Value;
+                    return EscapedJsonCookieListValue.Replace(e.Value, p =>
+                    {
+                        string value = p.Groups["value"].Value;
+                        return p.Groups["name"].Value + "\\\"" + RedactHeaderValue(header.Groups["header"].Value, value.StartsWith("\\\"") ? value[2..^2] : value) + "\\\"";
+                    });
+                }));
             redacted = MultipartCredentialPart.Replace(redacted, m =>
                 m.Groups["name"].Value + Marker);
 
