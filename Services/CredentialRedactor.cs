@@ -176,6 +176,34 @@ namespace HttpTrafficMonitor.Services
                 + string.Join("|", ApiKeyHeaders.Select(Regex.Escape)) + @")\\""",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+        // The auth block of a Postman collection lists its credentials as key/value entries, "bearer": [{"key": "token", "value": "value"}],
+        // also basic, apikey, oauth2 and the other auth types; an environment or a collection lists its variables the same way,
+        // "values": [{"key": "access_token", "value": "value"}], "variable": [...]. Only the "value" of an entry whose key names
+        // a credential goes; the auth type and the keys stay
+        private const string PostmanListKey = @"(?:bearer|basic|digest|apikey|oauth1|oauth2|hawk|awsv4|ntlm|akamai|edgegrid|jwt|asap|values|variable)";
+
+        private static readonly Regex JsonPostmanList = new(
+            @"(?<name>""(?<list>" + PostmanListKey + @")""\s*:\s*)(?<value>\[\s*" + JsonCookieListEntry + @"(?:\s*,\s*" + JsonCookieListEntry + @")*\s*\])",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        // The same inside a JSON string, \"bearer\": [{\"key\": \"token\", \"value\": \"value\"}]
+        private static readonly Regex EscapedJsonPostmanList = new(
+            @"(?<name>\\""(?<list>" + PostmanListKey + @")\\""\s*:\s*)(?<value>\[\s*" + EscapedJsonCookieListEntry + @"(?:\s*,\s*" + EscapedJsonCookieListEntry + @")*\s*\])",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        // A key named like a credential: a credential field, anything password-like, or a name ending in token, secret or a
+        // kind of key (bearerToken, consumerSecret, secretKey, API_KEY; tokenName and tokenType stay). In an apikey block
+        // the entry "key" holds the header name and stays, the entry "value" holds the key itself
+        private const string PostmanCredentialKey = @"[^""\\]*?(?:token|secret|api[_-]?key|access[_-]?key|secret[_-]?key|private[_-]?key|auth[_-]?key)";
+
+        private static readonly Regex JsonPostmanListKey = new(
+            @"""key""\s*:\s*""(?:" + string.Join("|", CredentialFields.Select(Regex.Escape)) + "|" + PasswordLikeField + "|" + PostmanCredentialKey + @"|(?<apikey>value))""",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex EscapedJsonPostmanListKey = new(
+            @"\\""key\\""\s*:\s*\\""(?:" + string.Join("|", CredentialFields.Select(Regex.Escape)) + "|" + PasswordLikeField + "|" + PostmanCredentialKey + @"|(?<apikey>value))\\""",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         // One "name": "value" property of such an object
         private static readonly Regex JsonCookieProperty = new(
             @"(?<name>""(?:[^""\\]|\\.)*""\s*:\s*)(?<value>""(?:[^""\\]|\\.)*""|-?\d[\d.eE+-]*)",
@@ -287,6 +315,22 @@ namespace HttpTrafficMonitor.Services
                         string value = p.Groups["value"].Value;
                         return p.Groups["name"].Value + "\\\"" + RedactHeaderValue(header.Groups["header"].Value, value.StartsWith("\\\"") ? value[2..^2] : value) + "\\\"";
                     });
+                }));
+            redacted = JsonPostmanList.Replace(redacted, m =>
+                m.Groups["name"].Value + JsonHeaderListEntry.Replace(m.Groups["value"].Value, e =>
+                {
+                    Match key = JsonPostmanListKey.Match(e.Value);
+                    if (!key.Success || (key.Groups["apikey"].Success && !m.Groups["list"].Value.Equals("apikey", StringComparison.OrdinalIgnoreCase))) return e.Value;
+                    return JsonCookieListValue.Replace(e.Value, p =>
+                        p.Groups["name"].Value + (p.Groups["value"].Value == "\"\"" ? "\"\"" : "\"" + Marker + "\""));
+                }));
+            redacted = EscapedJsonPostmanList.Replace(redacted, m =>
+                m.Groups["name"].Value + EscapedJsonHeaderListEntry.Replace(m.Groups["value"].Value, e =>
+                {
+                    Match key = EscapedJsonPostmanListKey.Match(e.Value);
+                    if (!key.Success || (key.Groups["apikey"].Success && !m.Groups["list"].Value.Equals("apikey", StringComparison.OrdinalIgnoreCase))) return e.Value;
+                    return EscapedJsonCookieListValue.Replace(e.Value, p =>
+                        p.Groups["name"].Value + (p.Groups["value"].Value == "\\\"\\\"" ? "\\\"\\\"" : "\\\"" + Marker + "\\\""));
                 }));
             redacted = MultipartCredentialPart.Replace(redacted, m =>
                 m.Groups["name"].Value + Marker);
