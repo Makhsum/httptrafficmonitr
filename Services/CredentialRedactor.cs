@@ -25,6 +25,9 @@ namespace HttpTrafficMonitor.Services
         // Any other field name holding "password" or "passwd": new_password, password_confirmation, user[password], confirmPassword
         private const string PasswordLikeField = @"[^=&?#\s""\\]*?pass(?:word|wd)[^=&?#\s""\\]*";
 
+        // The same for a URL-encoded name, where a % may only start an encoded [ or ]
+        private const string NestedPasswordLikeField = @"(?:[^=&?#%\s""\\]|%(?:25)*5[BD])*?pass(?:word|wd)(?:[^=&?#%\s""\\]|%(?:25)*5[BD])*";
+
         // Headers that carry a bare API key or token, with no scheme word in front of it
         private static readonly string[] ApiKeyHeaders =
         {
@@ -42,6 +45,14 @@ namespace HttpTrafficMonitor.Services
         // and "password=value" at the start of a form-encoded body or of a JSON string that echoes one
         private static readonly Regex UrlEncodedCredentialField = new(
             @"(?<=^|[?&""])(?<name>(?:" + string.Join("|", CredentialFields.Select(Regex.Escape)) + "|" + PasswordLikeField + @")=)(?<value>[^&#\s""'<>\\]+)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        // The same URL-encoded inside another query value, as a redirect target carries it:
+        // ?url=http%3A%2F%2Fexample.com%2Fcb%3Faccess_token%3Dvalue, also next= or return_to= encoded twice (%253F, %253D).
+        // The value ends at the outer & or at the next encoded & or #; an encoded user%5Bpassword%5D counts as password-like
+        private static readonly Regex NestedUrlEncodedCredentialField = new(
+            @"(?<name>%(?:25)*(?:3F|26|23)(?:" + string.Join("|", CredentialFields.Select(Regex.Escape)) + "|" + NestedPasswordLikeField + @")%(?:25)*3D)"
+                + @"(?<value>(?:(?!%(?:25)*(?:26|23))[^&#\s""'<>\\])+)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // "password": "value" in a JSON body or WebSocket message, also an API-key header a server echoes
@@ -89,6 +100,8 @@ namespace HttpTrafficMonitor.Services
             string redacted = CredentialHeaderLine.Replace(text, m =>
                 m.Groups["name"].Value + RedactHeaderValue(m.Groups["name"].Value.Trim().TrimEnd(':').Trim(), m.Groups["value"].Value));
             redacted = UrlEncodedCredentialField.Replace(redacted, m =>
+                m.Groups["name"].Value + Marker);
+            redacted = NestedUrlEncodedCredentialField.Replace(redacted, m =>
                 m.Groups["name"].Value + Marker);
             redacted = UrlPathCredential.Replace(redacted, m =>
                 m.Groups["name"].Value + Marker);
