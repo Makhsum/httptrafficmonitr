@@ -148,23 +148,26 @@ namespace HttpTrafficMonitor.Services
             return reader.ReadToEnd();
         }
 
-        private static void SetCorsHeaders(HttpListenerResponse response)
+        // A browser marks every request a web page makes with Origin (cross-origin and non-GET
+        // requests) or Sec-Fetch-Site; the MCP server and other local programs send neither.
+        // "none" is the user's own typed address or bookmark, which no page can read.
+        private static bool IsFromWebPage(HttpListenerRequest request)
         {
-            response.Headers.Set("Access-Control-Allow-Origin", "*");
-            response.Headers.Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-            response.Headers.Set("Access-Control-Allow-Headers", "Content-Type, Accept");
+            string? fetchSite = request.Headers["Sec-Fetch-Site"];
+            return request.Headers["Origin"] != null
+                || (fetchSite != null && !fetchSite.Equals("none", StringComparison.OrdinalIgnoreCase));
         }
 
         private async Task HandleRequest(HttpListenerContext ctx)
         {
             using var response = ctx.Response;
-            SetCorsHeaders(response);
 
             try
             {
-                if (ctx.Request.HttpMethod == "OPTIONS")
+                // No CORS headers on any answer, so a page cannot read one either.
+                if (IsFromWebPage(ctx.Request))
                 {
-                    response.StatusCode = 204;
+                    WriteError(response, "The local API of HTTP Traffic Monitor only answers the MCP server and other programs on this computer, not web pages in a browser.", 403);
                     return;
                 }
 
