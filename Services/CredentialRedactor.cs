@@ -336,8 +336,8 @@ namespace HttpTrafficMonitor.Services
         // JSON as a string: {"received": "{\"echoOf\": \"{\\\"Authorization\\\": \\\"Bearer value\\\"}\"}"}. The rules above
         // see the body and one quoting level; such a string is unquoted once and redacted on its own, which reaches the
         // next level the same way, and only quoted back when it lost a value. A quote that opens it follows an even run of backslashes;
-        // a stray quote before it ('"' in a script) would pair it the wrong way, so the closing quote of a string that lost
-        // nothing may open the next one
+        // a stray quote before it ('"' in a script) would pair it the wrong way, so the closing quote of a string may open
+        // the next one
         private static readonly Regex JsonStringQuotedTwice = new(
             @"(?<=(?:^|[^\\])(?:\\\\)*)""(?<text>(?:[^""\\]|\\.)*)""",
             RegexOptions.Compiled);
@@ -349,8 +349,9 @@ namespace HttpTrafficMonitor.Services
 
         // Such a string waits behind a placeholder while the other rules run, since they would read its second level
         // as the first: a header text there would lose every line after the Authorization line. It carries a key of its own
-        // call, so a body string of the same shape stays as it is
-        private static readonly Regex QuotedTwicePlaceholder = new("\"\u0001(?<key>[0-9a-f]{32}):(?<index>\\d{1,9})\u0001\"", RegexOptions.Compiled);
+        // call, so a body string of the same shape stays as it is. One that shares its opening quote with the string before
+        // goes without it
+        private static readonly Regex QuotedTwicePlaceholder = new("\"?\u0001(?<key>[0-9a-f]{32}):(?<index>\\d{1,9})\u0001\"", RegexOptions.Compiled);
 
         private readonly bool _revealCredentials;
 
@@ -470,7 +471,8 @@ namespace HttpTrafficMonitor.Services
             redacted = QuotedTwicePlaceholder.Replace(redacted, m =>
             {
                 int index = int.Parse(m.Groups["index"].Value);
-                return m.Groups["key"].Value == placeholderKey && index < quotedTwice.Count ? quotedTwice[index] : m.Value;
+                if (m.Groups["key"].Value != placeholderKey || index >= quotedTwice.Count) return m.Value;
+                return m.Value[0] == '"' ? quotedTwice[index] : quotedTwice[index][1..];
             });
 
             if (redacted != text) RedactedAny = true;
@@ -479,8 +481,10 @@ namespace HttpTrafficMonitor.Services
 
         public string? RedactOrNull(string? text) => text == null ? null : Redact(text);
 
-        // Puts each string quoted twice that lost a value behind a placeholder. Strings are paired from the start, but after
-        // one that stays as it is the scan goes on from its closing quote, so a stray quote before a string does not hide it
+        // Puts each string quoted twice that lost a value behind a placeholder. Strings are paired from the start, but the
+        // scan goes on from the closing quote of each one, so a stray quote before a string does not hide it, not even when
+        // the text it wrongly pairs lost a value as well; the placeholder of a string that opens with the closing quote of
+        // the one before goes without that quote
         private string ReplaceQuotedTwice(string text, List<string> quotedTwice, string placeholderKey)
         {
             var result = new StringBuilder();
@@ -488,15 +492,15 @@ namespace HttpTrafficMonitor.Services
             Match m = JsonStringQuotedTwice.Match(text);
             while (m.Success)
             {
+                int end = m.Index + m.Length;
                 string replaced = RedactQuotedTwice(m, quotedTwice, placeholderKey);
-                if (replaced == m.Value)
+                if (replaced != m.Value)
                 {
-                    m = JsonStringQuotedTwice.Match(text, m.Index + m.Length - 1);
-                    continue;
+                    if (m.Index < copied) result.Append(replaced, 1, replaced.Length - 1);
+                    else result.Append(text, copied, m.Index - copied).Append(replaced);
+                    copied = end;
                 }
-                result.Append(text, copied, m.Index - copied).Append(replaced);
-                copied = m.Index + m.Length;
-                m = JsonStringQuotedTwice.Match(text, copied);
+                m = JsonStringQuotedTwice.Match(text, end - 1);
             }
             return copied == 0 ? text : result.Append(text, copied, text.Length - copied).ToString();
         }
@@ -507,6 +511,9 @@ namespace HttpTrafficMonitor.Services
         {
             string text = m.Groups["text"].Value;
             if (!text.Contains(QuoteTwoLevelsDeep) && !text.Contains(LineBreakTwoLevelsDeep)) return m.Value;
+            // a raw line break or other control character never stands in a JSON string, only in text a stray quote paired
+            // the wrong way, which quoting back would rewrite
+            if (text.Any(c => c < ' ')) return m.Value;
 
             string? unquoted;
             try
