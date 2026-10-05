@@ -72,9 +72,10 @@ namespace HttpTrafficMonitor.Services
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // The same inside a JSON string, \"password\": \"value\", as an echo service or a logged payload quotes it;
-        // a quote inside the value arrives as \\\" and must not end it
+        // a quote inside the value arrives as \\\" and must not end it; a pretty-printed body keeps its line breaks
+        // escaped, so \"password\":\n  \"value\" puts the value on a line of its own
         private static readonly Regex EscapedJsonCredentialField = new(
-            @"(?<name>\\""(?:" + string.Join("|", JsonCredentialFields.Select(Regex.Escape)) + "|" + PasswordLikeField + @")\\""\s*:\s*)(?<value>\\""(?:\\\\\\.|\\\\[^""\\]|\\[^""\\]|[^""\\])*\\""|-?\d[\d.eE+-]*)",
+            @"(?<name>\\""(?:" + string.Join("|", JsonCredentialFields.Select(Regex.Escape)) + "|" + PasswordLikeField + @")\\""\s*:" + EscapedJsonSpace + @")(?<value>\\""(?:\\\\\\.|\\\\[^""\\]|\\[^""\\]|[^""\\])*\\""|-?\d[\d.eE+-]*)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // One value of a header an echo service lists as an array; a null or a number among the values
