@@ -19,6 +19,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - The MCP server is read-only by default: `replay_request` only sends GET, and the tools that change the Auto-Responder (`toggle_auto_responder`, `add_auto_responder_rule`, `update_auto_responder_rule`, `delete_auto_responder_rule`) are not offered. The toolbar switch "Agent may make changes" allows both; only the user can turn it on. Auto-Responder rules set up in the app keep answering live traffic either way.
 - The toolbar box "Agent replay hosts" limits which hosts `replay_request` may reach: once it lists hosts (`*.example.com` for subdomains), a replay to any other host is refused with a message naming that host. Empty, the default, keeps replay open to any host. No MCP tool can change the list, and the Replay window in the app is not limited by it.
 
+### Fixed
+
+- A curl command exported for a URL holding `[ ]` or `{ }` — a hidden `bot[redacted]` or `token=[redacted]`, or a query like `?ids[]=1` — now carries `-g`, so curl sends it instead of stopping with "bad range in URL".
+
 ## [0.1.0] - 2026-10-04
 
 ### Added

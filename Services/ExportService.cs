@@ -13,10 +13,12 @@ namespace HttpTrafficMonitor.Services
         public static string ToCurl(HttpRequestEntry entry)
         {
             var sb = new StringBuilder();
+            // curl reads [ ] and { } in a URL as a range, so "bot[redacted]" or "?a[]=1" fails with "bad range"; -g sends them as they are
+            string globOff = entry.Url.IndexOfAny(new[] { '[', ']', '{', '}' }) >= 0 ? "-g " : "";
             // curl -X HEAD waits for a body that never comes; -I sends a real HEAD request
             sb.Append(entry.Method == "HEAD"
-                ? $"curl -I {ShellQuote(entry.Url)}"
-                : $"curl -X {entry.Method} {ShellQuote(entry.Url)}");
+                ? $"curl {globOff}-I {ShellQuote(entry.Url)}"
+                : $"curl {globOff}-X {entry.Method} {ShellQuote(entry.Url)}");
 
             var headers = HttpReplayService.ParseHeaderList(entry.RequestHeaders);
             foreach (var (key, value) in headers)
