@@ -12,21 +12,44 @@ namespace HttpTrafficMonitor.Services
         public const string Notice =
             "Credential values are hidden by a setting in HTTP Traffic Monitor; only the user can change it there.";
 
-        private static readonly string[] TokenQueryParameters =
+        // Query parameters, form-encoded fields and JSON properties whose value is a credential
+        private static readonly string[] CredentialFields =
         {
             "access_token", "refresh_token", "id_token", "token", "auth", "auth_token", "authorization",
             "api_key", "apikey", "client_secret", "password", "session_token", "sessionid",
-            "sig", "signature", "x-amz-signature", "x-amz-credential", "x-amz-security-token"
+            "sig", "signature", "x-amz-signature", "x-amz-credential", "x-amz-security-token",
+            "passwd", "pwd", "client_assertion",
+            "accessToken", "refreshToken", "idToken", "authToken", "apiKey", "clientSecret", "sessionToken"
+        };
+
+        // Headers that carry a bare API key or token, with no scheme word in front of it
+        private static readonly string[] ApiKeyHeaders =
+        {
+            "x-api-key", "x-apikey", "api-key", "apikey", "x-api-token", "x-auth-token", "x-access-token",
+            "x-session-token", "x-goog-api-key", "x-amz-security-token", "ocp-apim-subscription-key", "private-token"
         };
 
         // "Name: value" lines of a header block, also a STOMP frame inside a WebSocket message
         private static readonly Regex CredentialHeaderLine = new(
-            @"^(?<name>[ \t]*(?:authorization|proxy-authorization|cookie|set-cookie)[ \t]*:[ \t]*)(?<value>[^\r\n]*)",
+            @"^(?<name>[ \t]*(?:authorization|proxy-authorization|cookie|set-cookie|"
+                + string.Join("|", ApiKeyHeaders.Select(Regex.Escape)) + @")[ \t]*:[ \t]*)(?<value>[^\r\n]*)",
             RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Compiled);
 
-        // "?token=value" or "&token=value" in a URL, a request line or a message that quotes a URL
-        private static readonly Regex TokenQueryParameter = new(
-            @"(?<=[?&])(?<name>(?:" + string.Join("|", TokenQueryParameters.Select(Regex.Escape)) + @")=)(?<value>[^&#\s""'<>\\]+)",
+        // "?token=value" or "&token=value" in a URL, a request line or a message that quotes a URL,
+        // and "password=value" at the start of a form-encoded body
+        private static readonly Regex UrlEncodedCredentialField = new(
+            @"(?<=^|[?&])(?<name>(?:" + string.Join("|", CredentialFields.Select(Regex.Escape)) + @")=)(?<value>[^&#\s""'<>\\]+)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        // "password": "value" in a JSON body or WebSocket message, also an API-key header a server echoes
+        // back as JSON; an object or array under such a name stays
+        private static readonly Regex JsonCredentialField = new(
+            @"(?<name>""(?:" + string.Join("|", CredentialFields.Concat(ApiKeyHeaders).Select(Regex.Escape)) + @")""\s*:\s*)(?<value>""(?:[^""\\]|\\.)*""|-?\d[\d.eE+-]*)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        // The same inside a JSON string, \"password\": \"value\", as an echo service or a logged payload quotes it
+        private static readonly Regex EscapedJsonCredentialField = new(
+            @"(?<name>\\""(?:" + string.Join("|", CredentialFields.Concat(ApiKeyHeaders).Select(Regex.Escape)) + @")\\""\s*:\s*)(?<value>\\""(?:[^""\\]|\\[^""])*\\""|-?\d[\d.eE+-]*)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // Several Set-Cookie headers joined into one line by ", ", as a replay answer lists them;
@@ -51,8 +74,12 @@ namespace HttpTrafficMonitor.Services
 
             string redacted = CredentialHeaderLine.Replace(text, m =>
                 m.Groups["name"].Value + RedactHeaderValue(m.Groups["name"].Value.Trim().TrimEnd(':').Trim(), m.Groups["value"].Value));
-            redacted = TokenQueryParameter.Replace(redacted, m =>
+            redacted = UrlEncodedCredentialField.Replace(redacted, m =>
                 m.Groups["name"].Value + Marker);
+            redacted = JsonCredentialField.Replace(redacted, m =>
+                m.Groups["name"].Value + (m.Groups["value"].Value == "\"\"" ? "\"\"" : "\"" + Marker + "\""));
+            redacted = EscapedJsonCredentialField.Replace(redacted, m =>
+                m.Groups["name"].Value + (m.Groups["value"].Value == "\\\"\\\"" ? "\\\"\\\"" : "\\\"" + Marker + "\\\""));
 
             if (redacted != text) RedactedAny = true;
             return redacted;
@@ -69,6 +96,9 @@ namespace HttpTrafficMonitor.Services
 
             if (name.Equals("set-cookie", StringComparison.OrdinalIgnoreCase))
                 return string.Join(", ", JoinedSetCookies.Split(value).Select(RedactSetCookie));
+
+            // An API-key header holds nothing but the key
+            if (!name.EndsWith("authorization", StringComparison.OrdinalIgnoreCase)) return Marker;
 
             // Authorization: the scheme word (Bearer, Basic, Digest) is no secret and helps debugging
             string trimmed = value.Trim();

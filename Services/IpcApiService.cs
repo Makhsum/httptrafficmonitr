@@ -979,7 +979,7 @@ namespace HttpTrafficMonitor.Services
             {
                 statusCode = result.StatusCode,
                 responseHeaders = redactor.Redact(result.ResponseHeaders),
-                responseBody = result.ResponseBody,
+                responseBody = redactor.Redact(result.ResponseBody),
                 responseSize = result.ResponseSize,
                 durationMs = result.Duration.TotalMilliseconds,
                 error = result.Error,
@@ -1347,9 +1347,9 @@ namespace HttpTrafficMonitor.Services
 
             // Redact before diffing: a diff of the raw text would show both values side by side
             string reqHeadersDiff = BuildDiff(redactor.Redact(e1.RequestHeaders ?? ""), redactor.Redact(e2.RequestHeaders ?? ""));
-            string reqBodyDiff = BuildDiff(e1.RequestBody ?? "", e2.RequestBody ?? "");
+            string reqBodyDiff = BuildDiff(redactor.Redact(e1.RequestBody ?? ""), redactor.Redact(e2.RequestBody ?? ""));
             string respHeadersDiff = BuildDiff(redactor.Redact(e1.ResponseHeaders ?? ""), redactor.Redact(e2.ResponseHeaders ?? ""));
-            string respBodyDiff = BuildDiff(e1.ResponseBody ?? "", e2.ResponseBody ?? "");
+            string respBodyDiff = BuildDiff(redactor.Redact(e1.ResponseBody ?? ""), redactor.Redact(e2.ResponseBody ?? ""));
 
             WriteJson(response, new
             {
@@ -1635,10 +1635,10 @@ namespace HttpTrafficMonitor.Services
                 Duration = e.Duration,
                 IsComplete = e.IsComplete,
                 RequestHeaders = redactor.Redact(e.RequestHeaders),
-                RequestBody = e.RequestBody,
+                RequestBody = redactor.Redact(e.RequestBody),
                 RequestContentType = e.RequestContentType,
                 ResponseHeaders = redactor.RedactOrNull(e.ResponseHeaders),
-                ResponseBody = e.ResponseBody,
+                ResponseBody = redactor.RedactOrNull(e.ResponseBody),
                 ResponseContentType = e.ResponseContentType,
                 DnsLookupMs = e.DnsLookupMs,
                 TcpConnectMs = e.TcpConnectMs,
@@ -1730,10 +1730,10 @@ namespace HttpTrafficMonitor.Services
                 isWebSocket = e.IsWebSocket,
                 isComplete = e.IsComplete,
                 requestHeaders = redactor.Redact(e.RequestHeaders),
-                requestBody = e.RequestBody,
+                requestBody = redactor.Redact(e.RequestBody),
                 requestContentType = e.RequestContentType,
                 responseHeaders = redactor.RedactOrNull(e.ResponseHeaders),
-                responseBody = e.ResponseBody,
+                responseBody = redactor.RedactOrNull(e.ResponseBody),
                 responseContentType = e.ResponseContentType,
                 responseTime = e.ResponseTime?.ToString("O"),
                 tlsInfo = e.TlsInfo != null ? new
