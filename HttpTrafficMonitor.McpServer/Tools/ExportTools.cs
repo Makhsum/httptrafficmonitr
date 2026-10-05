@@ -17,7 +17,7 @@ public static class ExportTools
         {
             // The app sends the command as {curl}
             var result = await client.GetAsync($"/export/curl/{requestId}");
-            return $"=== curl Command ===\n\n{GetString(result, "curl")}";
+            return TrafficTools.WithCredentialsNotice($"=== curl Command ===\n\n{GetString(result, "curl")}", result);
         }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
         {
@@ -92,7 +92,7 @@ public static class ExportTools
             var result = await client.PostAsync("/export/csv", new { requestIds = ids });
 
             // The app sends the CSV text as {csv}
-            return $"=== CSV Export ===\n\n{GetString(result, "csv").TrimEnd()}";
+            return TrafficTools.WithCredentialsNotice($"=== CSV Export ===\n\n{GetString(result, "csv").TrimEnd()}", result);
         }
         catch (HttpRequestException ex)
         {

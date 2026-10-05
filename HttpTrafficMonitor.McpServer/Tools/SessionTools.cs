@@ -17,7 +17,7 @@ public static class SessionTools
         try
         {
             var result = await client.PostAsync("/sessions/save", new { filePath, description });
-            return $"Session saved successfully to: {filePath}";
+            return TrafficTools.WithCredentialsNotice($"Session saved successfully to: {filePath}", result);
         }
         catch (HttpRequestException ex)
         {

@@ -933,15 +933,16 @@ namespace HttpTrafficMonitor.Services
                 return;
             }
 
-            string curl = ExportService.ToCurl(entry);
-            WriteJson(response, new { curl });
+            var redactor = NewRedactor();
+            string curl = ExportService.ToCurl(AsShownToAgent(entry, redactor));
+            WriteJson(response, new { curl, credentialsNotice = redactor.NoticeIfRedacted });
         }
 
         private void HandleExportHar(HttpListenerRequest request, HttpListenerResponse response)
         {
             var body = ReadBody<ExportIdsDto>(request);
 
-            var entries = GetRequestsByIds(body.RequestIds);
+            var entries = GetRequestsByIds(body.RequestIds, NewRedactor());
             string har = ExportService.ToHar(entries);
             WriteJsonString(response, har);
         }
@@ -950,7 +951,7 @@ namespace HttpTrafficMonitor.Services
         {
             var body = ReadBody<PostmanExportDto>(request);
 
-            var entries = GetRequestsByIds(body.RequestIds);
+            var entries = GetRequestsByIds(body.RequestIds, NewRedactor());
             string collectionName = body.CollectionName ?? "Exported Collection";
             string postman = ExportService.ToPostmanCollection(entries, collectionName);
             WriteJsonString(response, postman);
@@ -959,7 +960,7 @@ namespace HttpTrafficMonitor.Services
         private void HandleExportJson(HttpListenerRequest request, HttpListenerResponse response)
         {
             var body = ReadBody<ExportIdsDto>(request);
-            var entries = GetRequestsByIds(body.RequestIds);
+            var entries = GetRequestsByIds(body.RequestIds, NewRedactor());
 
             var data = entries.Select(e => new
             {
@@ -988,10 +989,11 @@ namespace HttpTrafficMonitor.Services
         private void HandleExportCsv(HttpListenerRequest request, HttpListenerResponse response)
         {
             var body = ReadBody<ExportIdsDto>(request);
-            var entries = GetRequestsByIds(body.RequestIds);
+            var redactor = NewRedactor();
+            var entries = GetRequestsByIds(body.RequestIds, redactor);
 
             string csv = ExportService.ToCsv(entries);
-            WriteJson(response, new { csv });
+            WriteJson(response, new { csv, credentialsNotice = redactor.NoticeIfRedacted });
         }
 
         // ======================= SESSIONS =======================
@@ -1006,12 +1008,14 @@ namespace HttpTrafficMonitor.Services
                 return;
             }
 
+            // The file is the agent's to read, so it holds what the agent is shown
+            var redactor = NewRedactor();
             InvokeOnUI(() =>
             {
                 List<HttpRequestEntry> snapshot;
                 lock (_vm.CollectionLock)
                 {
-                    snapshot = _vm.AllRequests.ToList();
+                    snapshot = _vm.AllRequests.Select(e => AsShownToAgent(e, redactor)).ToList();
                 }
                 var session = SessionService.BuildSessionData(
                     snapshot,
@@ -1025,7 +1029,7 @@ namespace HttpTrafficMonitor.Services
                 _vm.StatusMessage = $"Session saved ({snapshot.Count} requests)";
             });
 
-            WriteJson(response, new { success = true });
+            WriteJson(response, new { success = true, credentialsNotice = redactor.NoticeIfRedacted });
         }
 
         private void HandleSessionLoad(HttpListenerRequest request, HttpListenerResponse response)
@@ -1513,17 +1517,18 @@ namespace HttpTrafficMonitor.Services
 
         // ======================= HELPERS =======================
 
-        private List<HttpRequestEntry> GetRequestsByIds(List<int>? ids)
+        // Exports are only asked for by MCP tools, so they are built from what the agent is shown
+        private List<HttpRequestEntry> GetRequestsByIds(List<int>? ids, CredentialRedactor redactor)
         {
             return InvokeOnUI(() =>
             {
                 lock (_vm.CollectionLock)
                 {
-                    if (ids == null || ids.Count == 0)
-                        return _vm.AllRequests.ToList();
-
-                    var idSet = new HashSet<int>(ids);
-                    return _vm.AllRequests.Where(r => idSet.Contains(r.Id)).ToList();
+                    var idSet = ids == null || ids.Count == 0 ? null : new HashSet<int>(ids);
+                    return _vm.AllRequests
+                        .Where(r => idSet == null || idSet.Contains(r.Id))
+                        .Select(r => AsShownToAgent(r, redactor))
+                        .ToList();
                 }
             });
         }
@@ -1531,20 +1536,39 @@ namespace HttpTrafficMonitor.Services
         // Every answer that shows captured traffic goes through one of these, unless the user opted out
         private CredentialRedactor NewRedactor() => new(_vm.RevealCredentialsToAgents);
 
-        // A copy holding the values a filter may be evaluated on: the ones the agent is shown
+        // A copy holding the values the agent is shown: what a filter is evaluated on, an export is
+        // built from and a session is saved with. The grid's own entry stays as it was captured.
         private static HttpRequestEntry AsShownToAgent(HttpRequestEntry e, CredentialRedactor redactor)
         {
             return new HttpRequestEntry
             {
+                Id = e.Id,
+                Timestamp = e.Timestamp,
+                ResponseTime = e.ResponseTime,
+                ProcessName = e.ProcessName,
+                ProcessId = e.ProcessId,
                 Url = redactor.Redact(e.Url),
                 Host = e.Host,
+                Scheme = e.Scheme,
                 Method = e.Method,
                 StatusCode = e.StatusCode,
-                ProcessName = e.ProcessName,
+                ResponseSize = e.ResponseSize,
+                Duration = e.Duration,
+                IsComplete = e.IsComplete,
                 RequestHeaders = redactor.Redact(e.RequestHeaders),
                 RequestBody = e.RequestBody,
+                RequestContentType = e.RequestContentType,
                 ResponseHeaders = redactor.RedactOrNull(e.ResponseHeaders),
-                ResponseBody = e.ResponseBody
+                ResponseBody = e.ResponseBody,
+                ResponseContentType = e.ResponseContentType,
+                DnsLookupMs = e.DnsLookupMs,
+                TcpConnectMs = e.TcpConnectMs,
+                TlsHandshakeMs = e.TlsHandshakeMs,
+                TimeToFirstByteMs = e.TimeToFirstByteMs,
+                ContentDownloadMs = e.ContentDownloadMs,
+                TlsInfo = e.TlsInfo,
+                IsBookmarked = e.IsBookmarked,
+                BookmarkNotes = e.BookmarkNotes
             };
         }
 

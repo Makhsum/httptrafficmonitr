@@ -10,6 +10,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## [Unreleased]
 
+### Security
+
+- MCP tool answers hide the values of Authorization, Proxy-Authorization, Cookie and Set-Cookie headers and of common token query parameters by default. The toolbar switch "Agent sees credentials" shows them again; only the user can turn it on.
+- Exports made through the MCP tools (curl, HAR, Postman, JSON, CSV) and sessions saved through `save_session` hide the same values and follow the same switch. Exports and sessions made in the app window stay complete.
+
 ## [0.1.0] - 2026-10-04
 
 ### Added
