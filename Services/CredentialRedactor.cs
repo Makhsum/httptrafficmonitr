@@ -72,9 +72,10 @@ namespace HttpTrafficMonitor.Services
             CredentialFields.Where(f => f != "authorization").Concat(ApiKeyHeaders).ToArray();
 
         // "password": "value" in a JSON body or WebSocket message, also an API-key header a server echoes
-        // back as JSON; an object or array under such a name stays
+        // back as JSON; an object or array under such a name stays. A JSON string holds no raw line break, so a value
+        // that reaches one was cut off, and the line after it stays a line of its own
         private static readonly Regex JsonCredentialField = new(
-            @"(?<name>""(?:" + string.Join("|", JsonCredentialFields.Select(Regex.Escape)) + "|" + PasswordLikeField + @")""\s*:\s*)(?<value>""(?:[^""\\]|\\.)*""|-?\d[\d.eE+-]*)",
+            @"(?<name>""(?:" + string.Join("|", JsonCredentialFields.Select(Regex.Escape)) + "|" + PasswordLikeField + @")""\s*:\s*)(?<value>""(?:[^""\\\r\n]|\\.)*""|-?\d[\d.eE+-]*)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // The same inside a JSON string, \"password\": \"value\", as an echo service or a logged payload quotes it;
@@ -89,9 +90,10 @@ namespace HttpTrafficMonitor.Services
         private const string JsonArrayValue = @"(?:""(?:[^""\\]|\\.)*""|-?\d[\d.eE+-]*|null)";
 
         // A Cookie or Set-Cookie header a server echoes back as JSON ("Cookie": "session=value", also a list of
-        // Set-Cookie strings, and "HTTP_COOKIE" as a CGI or PHP server lists it); each cookie keeps its name like in the header itself
+        // Set-Cookie strings, and "HTTP_COOKIE" as a CGI or PHP server lists it); each cookie keeps its name like in the header itself.
+        // Like a credential field's, a value that reaches a raw line break was cut off and is left to TruncatedJsonCredentialField
         private static readonly Regex JsonCookieField = new(
-            @"(?<name>""(?:http_)?(?<header>cookie|set-cookie)""\s*:\s*)(?<value>""(?:[^""\\]|\\.)*""|\[\s*" + JsonArrayValue + @"(?:\s*,\s*" + JsonArrayValue + @")*\s*\])",
+            @"(?<name>""(?:http_)?(?<header>cookie|set-cookie)""\s*:\s*)(?<value>""(?:[^""\\\r\n]|\\.)*""|\[\s*" + JsonArrayValue + @"(?:\s*,\s*" + JsonArrayValue + @")*\s*\])",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // A string inside a JSON string, \"value\"; a quote inside it arrives as \\\" and must not end it
@@ -108,16 +110,33 @@ namespace HttpTrafficMonitor.Services
         // An Authorization or API-key header a server echoes back as JSON, "Authorization": "Bearer value", also with an
         // array of values as an echo service such as webhook.site lists it, "authorization": ["Bearer value"], "x-api-key": ["value"];
         // each value goes like in the header itself, so the scheme word of an Authorization or Proxy-Authorization value stays;
-        // also "HTTP_AUTHORIZATION" and "HTTP_PROXY_AUTHORIZATION" as a CGI, WSGI or PHP server lists the request environment
+        // also "HTTP_AUTHORIZATION" and "HTTP_PROXY_AUTHORIZATION" as a CGI, WSGI or PHP server lists the request environment;
+        // a value that reaches a raw line break is left to TruncatedJsonCredentialField
         private static readonly Regex JsonHeaderValues = new(
             @"(?<name>""(?:http_)?(?<header>authorization|proxy[-_]authorization|" + string.Join("|", ApiKeyHeaders.Select(Regex.Escape)) + @")""\s*:\s*)"
-                + @"(?<value>""(?:[^""\\]|\\.)*""|-?\d[\d.eE+-]*|\[\s*" + JsonArrayValue + @"(?:\s*,\s*" + JsonArrayValue + @")*\s*\])",
+                + @"(?<value>""(?:[^""\\\r\n]|\\.)*""|-?\d[\d.eE+-]*|\[\s*" + JsonArrayValue + @"(?:\s*,\s*" + JsonArrayValue + @")*\s*\])",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // The same inside a JSON string, \"Authorization\": \"Bearer value\", \"authorization\": [\"Bearer value\"], \"HTTP_AUTHORIZATION\": \"Bearer value\", also pretty-printed
         private static readonly Regex EscapedJsonHeaderValues = new(
             @"(?<name>\\""(?:http_)?(?<header>authorization|proxy[-_]authorization|" + string.Join("|", ApiKeyHeaders.Select(Regex.Escape)) + @")\\""" + EscapedJsonSpace + ":" + EscapedJsonSpace + @")"
                 + @"(?<value>" + EscapedJsonStringValue + @"|-?\d[\d.eE+-]*|\[" + EscapedJsonSpace + EscapedJsonArrayValue + @"(?:" + EscapedJsonSpace + "," + EscapedJsonSpace + EscapedJsonArrayValue + @")*" + EscapedJsonSpace + @"\])",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        // A credential field or header whose value was cut off before its closing quote, as a service that logs request bodies
+        // truncates them at a size limit: "password": "s3cr... The value runs to the end of the text or of its line;
+        // a header value goes like in the header itself, so the scheme word of an Authorization value stays
+        private static readonly Regex TruncatedJsonCredentialField = new(
+            @"(?<name>""(?:(?:http_)?(?<header>authorization|proxy[-_]authorization|cookie|set-cookie|" + string.Join("|", ApiKeyHeaders.Select(Regex.Escape)) + @")|"
+                + string.Join("|", JsonCredentialFields.Select(Regex.Escape)) + "|" + PasswordLikeField + @")""\s*:\s*"")(?<value>(?:[^""\\\r\n]|\\.)*\\?)(?=\r?\n|$)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        // The same inside a JSON string, \"password\": \"s3cr..., cut off before the escaped closing quote: the value ends where
+        // the string around it ends, at a quote after an even run of backslashes, or at the end of the text or of its line
+        private static readonly Regex EscapedTruncatedJsonCredentialField = new(
+            @"(?<name>\\""(?:(?:http_)?(?<header>authorization|proxy[-_]authorization|cookie|set-cookie|" + string.Join("|", ApiKeyHeaders.Select(Regex.Escape)) + @")|"
+                + string.Join("|", JsonCredentialFields.Select(Regex.Escape)) + "|" + PasswordLikeField + @")\\""" + EscapedJsonSpace + ":" + EscapedJsonSpace + @"\\"")"
+                + @"(?<value>(?:\\\\\\[^\r\n]|\\\\[^""\\\r\n]|\\[^""\\\r\n]|[^""\\\r\n])*(?:(?:\\\\)*(?="")|\\*(?=\r?\n|$)))",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // The cookies an echo service lists already parsed, one property per cookie ("cookies": {"session": "value"}),
@@ -423,6 +442,10 @@ namespace HttpTrafficMonitor.Services
             redacted = EscapedJsonHeaderValues.Replace(redacted, m =>
                 m.Groups["name"].Value + EscapedJsonString.Replace(m.Groups["value"].Value, s =>
                     "\\\"" + RedactHeaderValue(m.Groups["header"].Value, s.Groups["text"].Value) + "\\\""));
+            redacted = TruncatedJsonCredentialField.Replace(redacted, m =>
+                m.Groups["name"].Value + RedactTruncatedValue(m.Groups["header"], m.Groups["value"].Value));
+            redacted = EscapedTruncatedJsonCredentialField.Replace(redacted, m =>
+                m.Groups["name"].Value + RedactTruncatedValue(m.Groups["header"], m.Groups["value"].Value));
             redacted = JsonCookieObject.Replace(redacted, m =>
                 m.Groups["name"].Value + JsonCookieProperty.Replace(m.Groups["value"].Value, p =>
                     p.Groups["name"].Value + (p.Groups["value"].Value == "\"\"" ? "\"\"" : "\"" + Marker + "\"")));
@@ -582,6 +605,13 @@ namespace HttpTrafficMonitor.Services
             string trimmed = value.Trim();
             int space = trimmed.IndexOf(' ');
             return space < 0 ? Marker : trimmed[..space] + " " + Marker;
+        }
+
+        // A value cut off before its closing quote gets none: the answer shows the cut where the server made it
+        private static string RedactTruncatedValue(Group header, string value)
+        {
+            if (value.Length == 0) return value;
+            return header.Success ? RedactHeaderValue(header.Value, value) : Marker;
         }
 
         // Items alternate name and value; a value goes when the name before it is a credential header
