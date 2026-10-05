@@ -59,9 +59,10 @@ namespace HttpTrafficMonitor.Services
         // The same URL-encoded inside another query value, as a redirect target carries it:
         // ?url=http%3A%2F%2Fexample.com%2Fcb%3Faccess_token%3Dvalue, also next= or return_to= encoded twice (%253F, %253D).
         // The value ends at the outer & or at the next encoded & or #; an encoded user%5Bpassword%5D counts as password-like.
-        // The name may also open the outer value itself, as ?state=access_token%3Dvalue carries it
+        // The name may also open the outer value itself, as ?state=access_token%3Dvalue carries it,
+        // also after the \u0026 System.Text.Json writes for the & of a URL it lists
         private static readonly Regex NestedUrlEncodedCredentialField = new(
-            @"(?<name>(?:%(?:25)*(?:3F|26|23)|(?<=[?&][^=&#\s""'<>\\]*=))(?:" + string.Join("|", CredentialFields.Select(Regex.Escape)) + "|" + NestedPasswordLikeField + @")%(?:25)*3D)"
+            @"(?<name>(?:%(?:25)*(?:3F|26|23)|(?<=(?:[?&]|\\u0026)[^=&#\s""'<>\\]*=))(?:" + string.Join("|", CredentialFields.Select(Regex.Escape)) + "|" + NestedPasswordLikeField + @")%(?:25)*3D)"
                 + @"(?<value>(?:(?!%(?:25)*(?:26|23))[^&#\s""'<>\\])+)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
