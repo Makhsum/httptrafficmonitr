@@ -42,16 +42,18 @@ namespace HttpTrafficMonitor.Services
             RegexOptions.IgnoreCase | RegexOptions.Multiline | RegexOptions.Compiled);
 
         // "?token=value" or "&token=value" in a URL, a request line or a message that quotes a URL,
+        // "#access_token=value" in the fragment of a redirect target,
         // and "password=value" at the start of a form-encoded body or of a JSON string that echoes one
         private static readonly Regex UrlEncodedCredentialField = new(
-            @"(?<=^|[?&""])(?<name>(?:" + string.Join("|", CredentialFields.Select(Regex.Escape)) + "|" + PasswordLikeField + @")=)(?<value>[^&#\s""'<>\\]+)",
+            @"(?<=^|[?&#""])(?<name>(?:" + string.Join("|", CredentialFields.Select(Regex.Escape)) + "|" + PasswordLikeField + @")=)(?<value>[^&#\s""'<>\\]+)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // The same URL-encoded inside another query value, as a redirect target carries it:
         // ?url=http%3A%2F%2Fexample.com%2Fcb%3Faccess_token%3Dvalue, also next= or return_to= encoded twice (%253F, %253D).
-        // The value ends at the outer & or at the next encoded & or #; an encoded user%5Bpassword%5D counts as password-like
+        // The value ends at the outer & or at the next encoded & or #; an encoded user%5Bpassword%5D counts as password-like.
+        // The name may also open the outer value itself, as ?state=access_token%3Dvalue carries it
         private static readonly Regex NestedUrlEncodedCredentialField = new(
-            @"(?<name>%(?:25)*(?:3F|26|23)(?:" + string.Join("|", CredentialFields.Select(Regex.Escape)) + "|" + NestedPasswordLikeField + @")%(?:25)*3D)"
+            @"(?<name>(?:%(?:25)*(?:3F|26|23)|(?<=[?&][^=&#\s""'<>\\]*=))(?:" + string.Join("|", CredentialFields.Select(Regex.Escape)) + "|" + NestedPasswordLikeField + @")%(?:25)*3D)"
                 + @"(?<value>(?:(?!%(?:25)*(?:26|23))[^&#\s""'<>\\])+)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
@@ -70,11 +72,14 @@ namespace HttpTrafficMonitor.Services
         // A credential a service carries as a URL path segment: a Telegram bot token (/bot123456:AAE.../getUpdates,
         // also /file/bot.../), the secret of a Slack or Discord webhook URL; host and endpoint stay readable.
         // Matched by the path alone, since a request line (GET /bot.../getMe HTTP/1.1) has no host in front of it.
-        // The slash may arrive escaped as \/ when a JSON body quotes the URL
+        // The slash may arrive escaped as \/ when a JSON body quotes the URL, or as %2F (%252F) when the URL
+        // sits URL-encoded inside another query value
+        private const string PathSlash = @"(?:\\?/|%(?:25)*2F)";
+
         private static readonly Regex UrlPathCredential = new(
-            @"(?<name>\\?/bot)(?<value>\d+(?::|%3A)[A-Za-z0-9_-]{20,})"
-                + @"|(?<name>\\?/services\\?/(?-i:T[A-Z0-9]+\\?/B[A-Z0-9]+)\\?/)(?<value>[A-Za-z0-9]+)"
-                + @"|(?<name>\\?/api\\?/(?:v\d+\\?/)?webhooks\\?/\d{17,20}\\?/)(?<value>[A-Za-z0-9_-]+)",
+            @"(?<name>" + PathSlash + @"bot)(?<value>\d+(?::|%(?:25)*3A)[A-Za-z0-9_-]{20,})"
+                + @"|(?<name>" + PathSlash + "services" + PathSlash + "(?-i:T[A-Z0-9]+)" + PathSlash + "(?-i:B[A-Z0-9]+)" + PathSlash + @")(?<value>[A-Za-z0-9]+)"
+                + @"|(?<name>" + PathSlash + "api" + PathSlash + @"(?:v\d+" + PathSlash + ")?webhooks" + PathSlash + @"\d{17,20}" + PathSlash + @")(?<value>[A-Za-z0-9_-]+)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // Several Set-Cookie headers joined into one line by ", ", as a replay answer lists them;
