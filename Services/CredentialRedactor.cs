@@ -186,15 +186,30 @@ namespace HttpTrafficMonitor.Services
             @"(?<name>""(?<list>" + PostmanListKey + @")""\s*:\s*)(?<value>\[\s*" + JsonCookieListEntry + @"(?:\s*,\s*" + JsonCookieListEntry + @")*\s*\])",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        // The same inside a JSON string, \"bearer\": [{\"key\": \"token\", \"value\": \"value\"}]
+        // The same inside a JSON string, \"bearer\": [{\"key\": \"token\", \"value\": \"value\"}]; a pretty-printed collection
+        // arrives there with its line breaks escaped, [\n    {\"key\": ...},\n    {...}\n]
+        private const string EscapedJsonSpace = @"(?:\s|\\[nrt])*";
+
         private static readonly Regex EscapedJsonPostmanList = new(
-            @"(?<name>\\""(?<list>" + PostmanListKey + @")\\""\s*:\s*)(?<value>\[\s*" + EscapedJsonCookieListEntry + @"(?:\s*,\s*" + EscapedJsonCookieListEntry + @")*\s*\])",
+            @"(?<name>\\""(?<list>" + PostmanListKey + @")\\""\s*:\s*)(?<value>\[" + EscapedJsonSpace + EscapedJsonCookieListEntry
+                + @"(?:" + EscapedJsonSpace + "," + EscapedJsonSpace + EscapedJsonCookieListEntry + @")*" + EscapedJsonSpace + @"\])",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        // A key named like a credential: a credential field, anything password-like, or a name ending in token, secret or a
-        // kind of key (bearerToken, consumerSecret, secretKey, API_KEY; tokenName and tokenType stay). In an apikey block
+        // A Postman v2.0 collection writes the apikey block as one object, "apikey": {"key": "X-Api-Key", "value": "value"};
+        // its "value" is the key itself
+        private static readonly Regex JsonPostmanApiKeyObject = new(
+            @"(?<name>""apikey""\s*:\s*)(?<value>\{(?:" + JsonObjectMember + @")*\})",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex EscapedJsonPostmanApiKeyObject = new(
+            @"(?<name>\\""apikey\\""\s*:\s*)(?<value>\{(?:[^{}\\]|\\.)*\})",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        // A key named like a credential: a credential field, anything password-like, or a name ending in token, secret, a
+        // kind of key, jwt, bearer, cookie, credentials, passphrase or session id (bearerToken, consumerSecret, secretKey,
+        // API_KEY, id_jwt, sessionCookie, session_id; tokenName and tokenType stay). In an apikey block
         // the entry "key" holds the header name and stays, the entry "value" holds the key itself
-        private const string PostmanCredentialKey = @"[^""\\]*?(?:token|secret|api[_-]?key|access[_-]?key|secret[_-]?key|private[_-]?key|auth[_-]?key)";
+        private const string PostmanCredentialKey = @"[^""\\]*?(?:token|secret|api[_-]?key|access[_-]?key|secret[_-]?key|private[_-]?key|auth[_-]?key|jwt|bearer|cookie|credentials?|passphrase|session[_-]?id)";
 
         private static readonly Regex JsonPostmanListKey = new(
             @"""key""\s*:\s*""(?:" + string.Join("|", CredentialFields.Select(Regex.Escape)) + "|" + PasswordLikeField + "|" + PostmanCredentialKey + @"|(?<apikey>value))""",
@@ -332,6 +347,12 @@ namespace HttpTrafficMonitor.Services
                     return EscapedJsonCookieListValue.Replace(e.Value, p =>
                         p.Groups["name"].Value + (p.Groups["value"].Value == "\\\"\\\"" ? "\\\"\\\"" : "\\\"" + Marker + "\\\""));
                 }));
+            redacted = JsonPostmanApiKeyObject.Replace(redacted, m =>
+                m.Groups["name"].Value + JsonCookieListValue.Replace(m.Groups["value"].Value, p =>
+                    p.Groups["name"].Value + (p.Groups["value"].Value == "\"\"" ? "\"\"" : "\"" + Marker + "\"")));
+            redacted = EscapedJsonPostmanApiKeyObject.Replace(redacted, m =>
+                m.Groups["name"].Value + EscapedJsonCookieListValue.Replace(m.Groups["value"].Value, p =>
+                    p.Groups["name"].Value + (p.Groups["value"].Value == "\\\"\\\"" ? "\\\"\\\"" : "\\\"" + Marker + "\\\"")));
             redacted = MultipartCredentialPart.Replace(redacted, m =>
                 m.Groups["name"].Value + Marker);
 
