@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 
@@ -334,7 +335,9 @@ namespace HttpTrafficMonitor.Services
         // A JSON string that holds a JSON string of its own, as an echo service quotes a request body that already carried
         // JSON as a string: {"received": "{\"echoOf\": \"{\\\"Authorization\\\": \\\"Bearer value\\\"}\"}"}. The rules above
         // see the body and one quoting level; such a string is unquoted once and redacted on its own, which reaches the
-        // next level the same way, and only quoted back when it lost a value. A quote that opens it follows an even run of backslashes
+        // next level the same way, and only quoted back when it lost a value. A quote that opens it follows an even run of backslashes;
+        // a stray quote before it ('"' in a script) would pair it the wrong way, so the closing quote of a string that lost
+        // nothing may open the next one
         private static readonly Regex JsonStringQuotedTwice = new(
             @"(?<=(?:^|[^\\])(?:\\\\)*)""(?<text>(?:[^""\\]|\\.)*)""",
             RegexOptions.Compiled);
@@ -345,8 +348,9 @@ namespace HttpTrafficMonitor.Services
         private const string LineBreakTwoLevelsDeep = @"\\n";
 
         // Such a string waits behind a placeholder while the other rules run, since they would read its second level
-        // as the first: a header text there would lose every line after the Authorization line
-        private static readonly Regex QuotedTwicePlaceholder = new("\"\u0001(?<index>\\d{1,9})\u0001\"", RegexOptions.Compiled);
+        // as the first: a header text there would lose every line after the Authorization line. It carries a key of its own
+        // call, so a body string of the same shape stays as it is
+        private static readonly Regex QuotedTwicePlaceholder = new("\"\u0001(?<key>[0-9a-f]{32}):(?<index>\\d{1,9})\u0001\"", RegexOptions.Compiled);
 
         private readonly bool _revealCredentials;
 
@@ -365,7 +369,8 @@ namespace HttpTrafficMonitor.Services
             if (_revealCredentials || string.IsNullOrEmpty(text)) return text;
 
             var quotedTwice = new List<string>();
-            string redacted = JsonStringQuotedTwice.Replace(text, m => RedactQuotedTwice(m, quotedTwice));
+            string placeholderKey = Guid.NewGuid().ToString("N");
+            string redacted = ReplaceQuotedTwice(text, quotedTwice, placeholderKey);
             redacted = CredentialHeaderLine.Replace(redacted, m =>
                 m.Groups["name"].Value + RedactHeaderValue(m.Groups["name"].Value.Trim().TrimEnd(':').Trim(), m.Groups["value"].Value));
             redacted = UrlEncodedCredentialField.Replace(redacted, m =>
@@ -465,7 +470,7 @@ namespace HttpTrafficMonitor.Services
             redacted = QuotedTwicePlaceholder.Replace(redacted, m =>
             {
                 int index = int.Parse(m.Groups["index"].Value);
-                return index < quotedTwice.Count ? quotedTwice[index] : m.Value;
+                return m.Groups["key"].Value == placeholderKey && index < quotedTwice.Count ? quotedTwice[index] : m.Value;
             });
 
             if (redacted != text) RedactedAny = true;
@@ -474,9 +479,31 @@ namespace HttpTrafficMonitor.Services
 
         public string? RedactOrNull(string? text) => text == null ? null : Redact(text);
 
+        // Puts each string quoted twice that lost a value behind a placeholder. Strings are paired from the start, but after
+        // one that stays as it is the scan goes on from its closing quote, so a stray quote before a string does not hide it
+        private string ReplaceQuotedTwice(string text, List<string> quotedTwice, string placeholderKey)
+        {
+            var result = new StringBuilder();
+            int copied = 0;
+            Match m = JsonStringQuotedTwice.Match(text);
+            while (m.Success)
+            {
+                string replaced = RedactQuotedTwice(m, quotedTwice, placeholderKey);
+                if (replaced == m.Value)
+                {
+                    m = JsonStringQuotedTwice.Match(text, m.Index + m.Length - 1);
+                    continue;
+                }
+                result.Append(text, copied, m.Index - copied).Append(replaced);
+                copied = m.Index + m.Length;
+                m = JsonStringQuotedTwice.Match(text, copied);
+            }
+            return copied == 0 ? text : result.Append(text, copied, text.Length - copied).ToString();
+        }
+
         // Unquotes the string once, redacts what it holds and quotes it back, then hands it on as a placeholder;
-        // a string that holds no second quoting level, or that is no valid JSON string, stays as it is
-        private string RedactQuotedTwice(Match m, List<string> quotedTwice)
+        // a string that holds no second quoting level, that is no valid JSON string or that loses nothing stays as it is
+        private string RedactQuotedTwice(Match m, List<string> quotedTwice, string placeholderKey)
         {
             string text = m.Groups["text"].Value;
             if (!text.Contains(QuoteTwoLevelsDeep) && !text.Contains(LineBreakTwoLevelsDeep)) return m.Value;
@@ -494,8 +521,9 @@ namespace HttpTrafficMonitor.Services
             if (unquoted == null) return m.Value;
 
             string redacted = Redact(unquoted);
-            quotedTwice.Add(redacted == unquoted ? m.Value : JsonConvert.ToString(redacted));
-            return "\"\u0001" + (quotedTwice.Count - 1) + "\u0001\"";
+            if (redacted == unquoted) return m.Value;
+            quotedTwice.Add(JsonConvert.ToString(redacted));
+            return "\"\u0001" + placeholderKey + ":" + (quotedTwice.Count - 1) + "\u0001\"";
         }
 
         private static string RedactHeaderValue(string name, string value)
