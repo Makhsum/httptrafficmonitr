@@ -61,9 +61,10 @@ namespace HttpTrafficMonitor.Services
         // The value ends at the outer & or at the next encoded & or #; an encoded user%5Bpassword%5D counts as password-like.
         // The name may also open the outer value itself, as ?state=access_token%3Dvalue carries it,
         // also after the \u0026 System.Text.Json writes for the & of a URL it lists
+        // and with an escaped character it writes inside the value (\u002B for a +) not ending it
         private static readonly Regex NestedUrlEncodedCredentialField = new(
             @"(?<name>(?:%(?:25)*(?:3F|26|23)|(?<=(?:[?&]|\\u0026)[^=&#\s""'<>\\]*=))(?:" + string.Join("|", CredentialFields.Select(Regex.Escape)) + "|" + NestedPasswordLikeField + @")%(?:25)*3D)"
-                + @"(?<value>(?:(?!%(?:25)*(?:26|23))[^&#\s""'<>\\])+)",
+                + @"(?<value>(?:(?!%(?:25)*(?:26|23))(?:[^&#\s""'<>\\]|\\+u(?!0026|0023|0022|0027|003C|003E)[0-9A-F]{4}))+)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // The credential fields of a JSON body; "authorization" is left to JsonHeaderValues, which keeps its scheme word
