@@ -128,8 +128,11 @@ namespace HttpTrafficMonitor.Services
         // the braces are counted so one deep entry does not leave every other entry of the list readable
         private const string JsonCookieListEntry = @"\{(?>" + JsonObjectMember + @"|(?<open>\{)|(?<-open>\}))*(?(open)(?!))\}";
 
+        // A null in such a list counts as an entry, so it does not leave every other entry readable
+        private const string JsonListEntry = @"(?:" + JsonCookieListEntry + @"|null)";
+
         private static readonly Regex JsonCookieList = new(
-            @"(?<name>""cookies?""\s*:\s*)(?<value>\[\s*" + JsonCookieListEntry + @"(?:\s*,\s*" + JsonCookieListEntry + @")*\s*\])",
+            @"(?<name>""cookies?""\s*:\s*)(?<value>\[\s*" + JsonListEntry + @"(?:\s*,\s*" + JsonListEntry + @")*\s*\])",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // The same inside a JSON string, \"cookies\": [{\"name\": \"session\", \"value\": \"value\"}];
@@ -137,9 +140,11 @@ namespace HttpTrafficMonitor.Services
         // with its line breaks escaped between the entries, [\n    {\"name\": ...},\n    {...}\n], also before the "["
         private const string EscapedJsonCookieListEntry = @"\{(?>" + EscapedJsonStringValue + @"|[^{}\\]|\\.|(?<open>\{)|(?<-open>\}))*(?(open)(?!))\}";
 
+        private const string EscapedJsonListEntry = @"(?:" + EscapedJsonCookieListEntry + @"|null)";
+
         private static readonly Regex EscapedJsonCookieList = new(
-            @"(?<name>\\""cookies?\\""\s*:" + EscapedJsonSpace + @")(?<value>\[" + EscapedJsonSpace + EscapedJsonCookieListEntry
-                + @"(?:" + EscapedJsonSpace + "," + EscapedJsonSpace + EscapedJsonCookieListEntry + @")*" + EscapedJsonSpace + @"\])",
+            @"(?<name>\\""cookies?\\""\s*:" + EscapedJsonSpace + @")(?<value>\[" + EscapedJsonSpace + EscapedJsonListEntry
+                + @"(?:" + EscapedJsonSpace + "," + EscapedJsonSpace + EscapedJsonListEntry + @")*" + EscapedJsonSpace + @"\])",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // The "value" property of one entry of such a list
@@ -159,13 +164,13 @@ namespace HttpTrafficMonitor.Services
         private const string JsonHeaderListKey = @"(?:request|response)?headers?";
 
         private static readonly Regex JsonHeaderList = new(
-            @"(?<name>""" + JsonHeaderListKey + @"""\s*:\s*)(?<value>\[\s*" + JsonCookieListEntry + @"(?:\s*,\s*" + JsonCookieListEntry + @")*\s*\])",
+            @"(?<name>""" + JsonHeaderListKey + @"""\s*:\s*)(?<value>\[\s*" + JsonListEntry + @"(?:\s*,\s*" + JsonListEntry + @")*\s*\])",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // The same inside a JSON string, \"headers\": [{\"name\": \"cookie\", \"value\": \"session=value\"}], also pretty-printed
         private static readonly Regex EscapedJsonHeaderList = new(
-            @"(?<name>\\""" + JsonHeaderListKey + @"\\""\s*:" + EscapedJsonSpace + @")(?<value>\[" + EscapedJsonSpace + EscapedJsonCookieListEntry
-                + @"(?:" + EscapedJsonSpace + "," + EscapedJsonSpace + EscapedJsonCookieListEntry + @")*" + EscapedJsonSpace + @"\])",
+            @"(?<name>\\""" + JsonHeaderListKey + @"\\""\s*:" + EscapedJsonSpace + @")(?<value>\[" + EscapedJsonSpace + EscapedJsonListEntry
+                + @"(?:" + EscapedJsonSpace + "," + EscapedJsonSpace + EscapedJsonListEntry + @")*" + EscapedJsonSpace + @"\])",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // One entry of such a list and its "name" (Postman: "key") property, when that names a credential header
@@ -239,25 +244,20 @@ namespace HttpTrafficMonitor.Services
         // also basic, apikey, oauth2 and the other auth types; an environment or a collection lists its variables the same way,
         // "values": [{"key": "access_token", "value": "value"}], "variable": [...], and a request its query parameters and form body,
         // "query": [...], "urlencoded": [...], "formdata": [...], in a v1 collection "queryParams": [...] and "data": [...].
-        // Only the "value" of an entry whose key names a credential goes; the auth type and the keys stay.
-        // A null in such a list counts as an entry, so it does not leave every other entry readable
+        // Only the "value" of an entry whose key names a credential goes; the auth type and the keys stay
         private const string PostmanListKey = @"(?:bearer|basic|digest|apikey|oauth1|oauth2|hawk|awsv4|ntlm|akamai|edgegrid|jwt|asap|values|variable|query|urlencoded|formdata|queryParams|data)";
 
-        private const string JsonPostmanListEntry = @"(?:" + JsonCookieListEntry + @"|null)";
-
         private static readonly Regex JsonPostmanList = new(
-            @"(?<name>""(?<list>" + PostmanListKey + @")""\s*:\s*)(?<value>\[\s*" + JsonPostmanListEntry + @"(?:\s*,\s*" + JsonPostmanListEntry + @")*\s*\])",
+            @"(?<name>""(?<list>" + PostmanListKey + @")""\s*:\s*)(?<value>\[\s*" + JsonListEntry + @"(?:\s*,\s*" + JsonListEntry + @")*\s*\])",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // The same inside a JSON string, \"bearer\": [{\"key\": \"token\", \"value\": \"value\"}]; a pretty-printed collection
         // arrives there with its line breaks escaped, [\n    {\"key\": ...},\n    {...}\n], also before the "["
         private const string EscapedJsonSpace = @"(?:\s|\\[nrt])*";
 
-        private const string EscapedJsonPostmanListEntry = @"(?:" + EscapedJsonCookieListEntry + @"|null)";
-
         private static readonly Regex EscapedJsonPostmanList = new(
-            @"(?<name>\\""(?<list>" + PostmanListKey + @")\\""\s*:" + EscapedJsonSpace + @")(?<value>\[" + EscapedJsonSpace + EscapedJsonPostmanListEntry
-                + @"(?:" + EscapedJsonSpace + "," + EscapedJsonSpace + EscapedJsonPostmanListEntry + @")*" + EscapedJsonSpace + @"\])",
+            @"(?<name>\\""(?<list>" + PostmanListKey + @")\\""\s*:" + EscapedJsonSpace + @")(?<value>\[" + EscapedJsonSpace + EscapedJsonListEntry
+                + @"(?:" + EscapedJsonSpace + "," + EscapedJsonSpace + EscapedJsonListEntry + @")*" + EscapedJsonSpace + @"\])",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // A Postman v2.0 collection writes the apikey block as one object, "apikey": {"key": "X-Api-Key", "value": "value"};
