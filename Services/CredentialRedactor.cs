@@ -80,17 +80,40 @@ namespace HttpTrafficMonitor.Services
             @"(?<name>\\""(?:http_)?(?<header>cookie|set-cookie)\\""\s*:\s*)(?<value>\\""(?:\\\\\\.|\\\\[^""\\]|\\[^""\\]|[^""\\])*\\"")",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        // The cookies an echo service lists already parsed, one property per cookie ("cookies": {"session": "value"});
-        // the cookie names stay; a cookie that holds an object of its own (Express's j: cookies) loses its values too
+        // The cookies an echo service lists already parsed, one property per cookie ("cookies": {"session": "value"}),
+        // also Express's "signedCookies" and PHP's "_COOKIE"; the cookie names stay; a cookie that holds an object
+        // of its own (Express's j: cookies) loses its values too
+        private const string JsonCookieObjectName = @"(?:cookies?|signedCookies|_COOKIE)";
+
         private const string JsonObjectMember = @"[^{}""]|""(?:[^""\\]|\\.)*""";
 
         private static readonly Regex JsonCookieObject = new(
-            @"(?<name>""cookies?""\s*:\s*)(?<value>\{(?:" + JsonObjectMember + @"|\{(?:" + JsonObjectMember + @")*\})*\})",
+            @"(?<name>""" + JsonCookieObjectName + @"""\s*:\s*)(?<value>\{(?:" + JsonObjectMember + @"|\{(?:" + JsonObjectMember + @")*\})*\})",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // The same inside a JSON string, \"cookies\": {\"session\": \"value\"}
         private static readonly Regex EscapedJsonCookieObject = new(
-            @"(?<name>\\""cookies?\\""\s*:\s*)(?<value>\{(?:[^{}\\]|\\.|\{(?:[^{}\\]|\\.)*\})*\})",
+            @"(?<name>\\""" + JsonCookieObjectName + @"\\""\s*:\s*)(?<value>\{(?:[^{}\\]|\\.|\{(?:[^{}\\]|\\.)*\})*\})",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        // The cookies a HAR-style echo service (mockbin and similar) lists as name/value objects,
+        // "cookies": [{"name": "session", "value": "value", "path": "/"}]; only each "value" goes
+        private static readonly Regex JsonCookieList = new(
+            @"(?<name>""cookies?""\s*:\s*)(?<value>\[\s*\{(?:" + JsonObjectMember + @")*\}(?:\s*,\s*\{(?:" + JsonObjectMember + @")*\})*\s*\])",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        // The same inside a JSON string, \"cookies\": [{\"name\": \"session\", \"value\": \"value\"}]
+        private static readonly Regex EscapedJsonCookieList = new(
+            @"(?<name>\\""cookies?\\""\s*:\s*)(?<value>\[\s*\{(?:[^{}\\]|\\.)*\}(?:\s*,\s*\{(?:[^{}\\]|\\.)*\})*\s*\])",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        // The "value" property of one entry of such a list
+        private static readonly Regex JsonCookieListValue = new(
+            @"(?<name>""value""\s*:\s*)(?<value>""(?:[^""\\]|\\.)*""|-?\d[\d.eE+-]*)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        private static readonly Regex EscapedJsonCookieListValue = new(
+            @"(?<name>\\""value\\""\s*:\s*)(?<value>\\""(?:\\\\\\.|\\\\[^""\\]|\\[^""\\]|[^""\\])*\\""|-?\d[\d.eE+-]*)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // One "name": "value" property of such an object
@@ -166,6 +189,12 @@ namespace HttpTrafficMonitor.Services
                     p.Groups["name"].Value + (p.Groups["value"].Value == "\"\"" ? "\"\"" : "\"" + Marker + "\"")));
             redacted = EscapedJsonCookieObject.Replace(redacted, m =>
                 m.Groups["name"].Value + EscapedJsonCookieProperty.Replace(m.Groups["value"].Value, p =>
+                    p.Groups["name"].Value + (p.Groups["value"].Value == "\\\"\\\"" ? "\\\"\\\"" : "\\\"" + Marker + "\\\"")));
+            redacted = JsonCookieList.Replace(redacted, m =>
+                m.Groups["name"].Value + JsonCookieListValue.Replace(m.Groups["value"].Value, p =>
+                    p.Groups["name"].Value + (p.Groups["value"].Value == "\"\"" ? "\"\"" : "\"" + Marker + "\"")));
+            redacted = EscapedJsonCookieList.Replace(redacted, m =>
+                m.Groups["name"].Value + EscapedJsonCookieListValue.Replace(m.Groups["value"].Value, p =>
                     p.Groups["name"].Value + (p.Groups["value"].Value == "\\\"\\\"" ? "\\\"\\\"" : "\\\"" + Marker + "\\\"")));
             redacted = MultipartCredentialPart.Replace(redacted, m =>
                 m.Groups["name"].Value + Marker);
