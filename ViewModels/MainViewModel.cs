@@ -321,7 +321,7 @@ namespace HttpTrafficMonitor.ViewModels
         private static bool ConfirmAllowAgentChanges()
         {
             var result = MessageBox.Show(
-                "AI agents connected over MCP will be able to replay requests with any method (POST, PUT, DELETE, ...), to add, change and delete Auto-Responder rules that answer live traffic, to clear the captured requests, to start and stop the proxy, to pause and resume the capture, to load a session over the current capture, and to change exclusions and alert rules.\n\nAllow agents to make changes?",
+                "AI agents connected over MCP will be able to replay requests with any method (POST, PUT, DELETE, ...), to add, change and delete Auto-Responder rules that answer live traffic, to clear the captured requests, to start and stop the proxy, to pause and resume the capture, to load a session over the current capture, to save a session over an existing file, and to change exclusions and alert rules.\n\nAllow agents to make changes?",
                 "Agent may make changes",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning,

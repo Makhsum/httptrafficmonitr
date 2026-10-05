@@ -905,7 +905,7 @@ namespace HttpTrafficMonitor.Services
         private bool AgentChangesAllowed(HttpListenerResponse response)
         {
             if (_vm.AllowAgentChanges) return true;
-            WriteError(response, "The app only lets agents read: a replay may only use GET, no session may be loaded, the capture may not be paused or resumed, and the captured requests, the proxy, exclusions, alert rules and the Auto-Responder cannot be changed. The user can allow changes with the toolbar switch \"Agent may make changes\" in HTTP Traffic Monitor.", 403);
+            WriteError(response, "The app only lets agents read: a replay may only use GET, no session may be loaded or saved over an existing file, the capture may not be paused or resumed, and the captured requests, the proxy, exclusions, alert rules and the Auto-Responder cannot be changed. The user can allow changes with the toolbar switch \"Agent may make changes\" in HTTP Traffic Monitor.", 403);
             return false;
         }
 
@@ -1099,28 +1099,60 @@ namespace HttpTrafficMonitor.Services
                 return;
             }
 
+            // Until the user allows changes an agent may only write a new file, so it never replaces
+            // a document or a session of the user's (the app runs elevated and could write anywhere)
+            bool overwrite = _vm.AllowAgentChanges;
+            string target = FileOwningStream(body.FilePath!);
+            if (!overwrite && (File.Exists(target) || Directory.Exists(target)))
+            {
+                WriteError(response, ExistingFileRefusal(body.FilePath!), 403);
+                return;
+            }
+
             // The file is the agent's to read, so it holds what the agent is shown
             var redactor = NewRedactor();
-            InvokeOnUI(() =>
+            try
             {
-                List<HttpRequestEntry> snapshot;
-                lock (_vm.CollectionLock)
+                InvokeOnUI(() =>
                 {
-                    snapshot = _vm.AllRequests.Select(e => AsShownToAgent(e, redactor)).ToList();
-                }
-                var session = SessionService.BuildSessionData(
-                    snapshot,
-                    _vm.ExcludedDomainsText,
-                    _vm.ExcludedProcessesText,
-                    _vm.AlertsVm.Rules.ToList(),
-                    _vm.AutoResponderVm.Rules.ToList(),
-                    sslPassthroughDomains: _vm.SslPassthroughDomainsText);
-                session.Description = body.Description ?? string.Empty;
-                SessionService.SaveSession(body.FilePath!, session);
-                _vm.StatusMessage = $"Session saved ({snapshot.Count} requests)";
-            });
+                    List<HttpRequestEntry> snapshot;
+                    lock (_vm.CollectionLock)
+                    {
+                        snapshot = _vm.AllRequests.Select(e => AsShownToAgent(e, redactor)).ToList();
+                    }
+                    var session = SessionService.BuildSessionData(
+                        snapshot,
+                        _vm.ExcludedDomainsText,
+                        _vm.ExcludedProcessesText,
+                        _vm.AlertsVm.Rules.ToList(),
+                        _vm.AutoResponderVm.Rules.ToList(),
+                        sslPassthroughDomains: _vm.SslPassthroughDomainsText);
+                    session.Description = body.Description ?? string.Empty;
+                    SessionService.SaveSession(body.FilePath!, session, overwrite);
+                    _vm.StatusMessage = $"Session saved ({snapshot.Count} requests)";
+                });
+            }
+            catch (IOException) when (!overwrite && (File.Exists(target) || Directory.Exists(target)))
+            {
+                // Created by someone else between the check above and the write; CreateNew left it alone
+                WriteError(response, ExistingFileRefusal(body.FilePath!), 403);
+                return;
+            }
 
             WriteJson(response, new { success = true, credentialsNotice = redactor.NoticeIfRedacted });
+        }
+
+        // "notes.txt:hidden" writes a hidden stream into notes.txt, so it counts as that file
+        private static string FileOwningStream(string filePath)
+        {
+            string fileName = Path.GetFileName(filePath);
+            int colon = fileName.IndexOf(':');
+            return colon < 0 ? filePath : filePath[..(filePath.Length - fileName.Length + colon)];
+        }
+
+        private static string ExistingFileRefusal(string filePath)
+        {
+            return $"The session was not saved: \"{filePath}\" already exists, and the app only lets agents save a session to a new file. Choose a file name that does not exist yet. The user can allow agents to replace files with the toolbar switch \"Agent may make changes\" in HTTP Traffic Monitor.";
         }
 
         private void HandleSessionLoad(HttpListenerRequest request, HttpListenerResponse response)

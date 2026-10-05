@@ -16,12 +16,13 @@ namespace HttpTrafficMonitor.Services
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "HttpTrafficMonitor", "recent_sessions.json");
 
-        public static void SaveSession(string path, SessionData session)
+        // With overwrite off an existing file is never touched: CreateNew fails with an IOException instead
+        public static void SaveSession(string path, SessionData session, bool overwrite = true)
         {
             string json = JsonConvert.SerializeObject(session, Formatting.None,
                 new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
 
-            using var fileStream = File.Create(path);
+            using var fileStream = overwrite ? File.Create(path) : new FileStream(path, FileMode.CreateNew, FileAccess.Write);
             using var gzip = new GZipStream(fileStream, CompressionLevel.Optimal);
             byte[] bytes = Encoding.UTF8.GetBytes(json);
             gzip.Write(bytes, 0, bytes.Length);

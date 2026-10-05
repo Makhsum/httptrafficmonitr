@@ -14,7 +14,7 @@ public static class SessionTools
         nameof(load_session)
     };
 
-    [McpServerTool, Description("Save the current HTTP traffic session to an .hts file")]
+    [McpServerTool, Description("Save the current HTTP traffic session to an .hts file. Unless the user allowed agent changes in the app, the file must not exist yet: an existing file is never replaced.")]
     public static async Task<string> save_session(
         IpcClient client,
         [Description("Full path to the .hts file to save")] string filePath,
@@ -24,6 +24,11 @@ public static class SessionTools
         {
             var result = await client.PostAsync("/sessions/save", new { filePath, description });
             return TrafficTools.WithCredentialsNotice($"Session saved successfully to: {filePath}", result);
+        }
+        catch (IpcApiException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
+        {
+            // The app refuses to replace an existing file until the user allows agent changes
+            return ex.ApiError ?? $"The session was not saved: {ex.Message}";
         }
         catch (HttpRequestException ex)
         {

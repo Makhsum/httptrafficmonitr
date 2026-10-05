@@ -122,7 +122,7 @@ Tool groups (see `HttpTrafficMonitor.McpServer/Tools/`):
 
 Add it to an MCP-capable client (e.g. Claude Code / Claude Desktop) pointing at the built `HttpTrafficMonitor.McpServer.exe`; the main `HttpTrafficMonitor.exe` must already be running and capturing for most tools to return data.
 
-By default an assistant can only read: `replay_request` sends GET only, and the tools that change something are not offered: `clear_requests`, `start_proxy`, `stop_proxy`, `pause_capture`, `resume_capture`, `load_session`, `manage_exclusions` (`get_exclusions` reads the exclusions), `add_alert_rule`, `delete_alert_rule` and the tools that change the Auto-Responder. Turn on the toolbar switch **Agent may make changes** in the app to allow them; no MCP tool can turn it on. The same actions in the app window work either way.
+By default an assistant can only read: `replay_request` sends GET only, and the tools that change something are not offered: `clear_requests`, `start_proxy`, `stop_proxy`, `pause_capture`, `resume_capture`, `load_session`, `manage_exclusions` (`get_exclusions` reads the exclusions), `add_alert_rule`, `delete_alert_rule` and the tools that change the Auto-Responder; `save_session` only writes a new file and refuses a path that already exists. Turn on the toolbar switch **Agent may make changes** in the app to allow them; no MCP tool can turn it on. The same actions in the app window work either way.
 
 To keep replay to known hosts, list them in the toolbar box **Agent replay hosts** (comma-separated, `*.example.com` for subdomains); `replay_request` then refuses any other host. Left empty, replay may reach any host. No MCP tool can change the list.
 
