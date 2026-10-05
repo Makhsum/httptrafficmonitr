@@ -50,6 +50,7 @@ namespace HttpTrafficMonitor.ViewModels
         private bool _isDarkTheme = true;
         private bool _revealCredentialsToAgents;
         private bool _allowAgentChanges;
+        private string _agentReplayHosts = string.Empty;
         private string _decodedRequestContent = string.Empty;
         private string _decodedResponseContent = string.Empty;
         private string _decodedRequestInfo = string.Empty;
@@ -196,6 +197,12 @@ namespace HttpTrafficMonitor.ViewModels
                 if (SetProperty(ref _allowAgentChanges, value)) _themeService.SetAllowAgentChanges(value);
             }
         }
+        // Read by the local API before every replay; empty lets an agent's replay reach any host
+        public string AgentReplayHosts
+        {
+            get => _agentReplayHosts;
+            set { if (SetProperty(ref _agentReplayHosts, value ?? string.Empty)) _themeService.SetAgentReplayHosts(_agentReplayHosts); }
+        }
         public bool IsAdvancedFilterActive { get => _isAdvancedFilterActive; set { if (SetProperty(ref _isAdvancedFilterActive, value)) FilteredRequests.Refresh(); } }
 
         // Decoded content
@@ -296,6 +303,7 @@ namespace HttpTrafficMonitor.ViewModels
             _isDarkTheme = _themeService.IsDarkTheme;
             _revealCredentialsToAgents = _themeService.RevealCredentialsToAgents;
             _allowAgentChanges = _themeService.AllowAgentChanges;
+            _agentReplayHosts = _themeService.AgentReplayHosts;
             GraphsVm.ApplyTheme(_isDarkTheme);
         }
 

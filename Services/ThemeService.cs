@@ -19,11 +19,14 @@ namespace HttpTrafficMonitor.Services
 
         public bool AllowAgentChanges { get; private set; }
 
+        public string AgentReplayHosts { get; private set; } = string.Empty;
+
         public void Initialize()
         {
             IsDarkTheme = LoadThemePreference();
             RevealCredentialsToAgents = LoadSettings().RevealCredentialsToAgents;
             AllowAgentChanges = LoadSettings().AllowAgentChanges;
+            AgentReplayHosts = LoadSettings().AgentReplayHosts ?? string.Empty;
             ApplyTheme();
         }
 
@@ -48,6 +51,20 @@ namespace HttpTrafficMonitor.Services
             {
                 var settings = LoadSettings();
                 settings.AllowAgentChanges = allow;
+                string dir = Path.GetDirectoryName(SettingsPath)!;
+                Directory.CreateDirectory(dir);
+                File.WriteAllText(SettingsPath, JsonConvert.SerializeObject(settings));
+            }
+            catch { }
+        }
+
+        public void SetAgentReplayHosts(string hosts)
+        {
+            AgentReplayHosts = hosts;
+            try
+            {
+                var settings = LoadSettings();
+                settings.AgentReplayHosts = hosts;
                 string dir = Path.GetDirectoryName(SettingsPath)!;
                 Directory.CreateDirectory(dir);
                 File.WriteAllText(SettingsPath, JsonConvert.SerializeObject(settings));
@@ -120,6 +137,9 @@ namespace HttpTrafficMonitor.Services
 
             // Same: only the toolbar switch sets this, so no MCP tool can turn it on
             public bool AllowAgentChanges { get; set; }
+
+            // Same: only the toolbar box sets the hosts an agent's replay may reach
+            public string? AgentReplayHosts { get; set; }
         }
     }
 }

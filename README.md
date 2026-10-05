@@ -124,6 +124,8 @@ Add it to an MCP-capable client (e.g. Claude Code / Claude Desktop) pointing at 
 
 By default an assistant can only read: `replay_request` sends GET only, and the tools that change the Auto-Responder are not offered. Turn on the toolbar switch **Agent may make changes** in the app to allow other methods and mock rules; no MCP tool can turn it on.
 
+To keep replay to known hosts, list them in the toolbar box **Agent replay hosts** (comma-separated, `*.example.com` for subdomains); `replay_request` then refuses any other host. Left empty, replay may reach any host. No MCP tool can change the list.
+
 ### Configuring the MCP server
 
 **From a release download** — unzip `HttpTrafficMonitor.McpServer-<version>-win-x64.zip` anywhere (e.g. `C:\Tools`) and point your client at the exe; no build and no .NET install needed:

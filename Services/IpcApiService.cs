@@ -897,6 +897,54 @@ namespace HttpTrafficMonitor.Services
             return false;
         }
 
+        // Only the toolbar box sets the list; while it is empty a replay may reach any host
+        private bool ReplayHostAllowed(string? url, HttpListenerResponse response)
+        {
+            if (string.IsNullOrWhiteSpace(_vm.AgentReplayHosts)) return true;
+
+            // Parsed the way HttpReplayService's HttpRequestMessage parses it, so the host checked is the host reached
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || string.IsNullOrEmpty(uri.Host))
+            {
+                WriteError(response, $"The app lets agents replay only to the hosts the user listed in the toolbar box \"Agent replay hosts\", and \"{url}\" names no host.", 403);
+                return false;
+            }
+
+            string host = NormalizeReplayHost(uri.Host);
+            foreach (string entry in ParseReplayHosts(_vm.AgentReplayHosts))
+            {
+                if (entry.StartsWith("*.") ? host.EndsWith(entry[1..], StringComparison.Ordinal) : host == entry)
+                    return true;
+            }
+
+            WriteError(response, $"The app lets agents replay only to the hosts the user listed, and \"{uri.Host}\" is not one of them. The user can add it in the toolbar box \"Agent replay hosts\" in HTTP Traffic Monitor.", 403);
+            return false;
+        }
+
+        // Entries are separated by commas, semicolons or spaces; "*.example.com" stands for its subdomains,
+        // and a scheme, port or path typed with a host is ignored
+        private static List<string> ParseReplayHosts(string hostsText)
+        {
+            var hosts = new List<string>();
+            foreach (string raw in hostsText.Split(new[] { ',', ';', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                bool subdomains = raw.StartsWith("*.");
+                string entry = subdomains ? raw[2..] : raw;
+                if (!entry.Contains("://")) entry = "http://" + entry;
+
+                // An entry that is no host still counts as set, so a typo never lifts the limit; it just matches nothing
+                string host = Uri.TryCreate(entry, UriKind.Absolute, out var uri) && uri.Host.Length > 0
+                    ? NormalizeReplayHost(uri.Host)
+                    : raw.ToLowerInvariant();
+                hosts.Add(subdomains ? "*." + host : host);
+            }
+            return hosts;
+        }
+
+        private static string NormalizeReplayHost(string host)
+        {
+            return host.Trim('[', ']').TrimEnd('.').ToLowerInvariant();
+        }
+
         // ======================= REPLAY =======================
 
         private async Task HandleReplay(HttpListenerRequest request, HttpListenerResponse response)
@@ -908,6 +956,8 @@ namespace HttpTrafficMonitor.Services
                 replayMethod = "GET";
             else if (!AgentChangesAllowed(response))
                 return;
+
+            if (!ReplayHostAllowed(body.Url, response)) return;
 
             var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             if (body.Headers != null)

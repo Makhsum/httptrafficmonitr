@@ -9,7 +9,7 @@ namespace HttpTrafficMonitor.McpServer.Tools;
 [McpServerToolType]
 public static class ReplayTools
 {
-    [McpServerTool, Description("Replay an HTTP request with the specified method, URL, headers, and body. Returns the response status, duration, headers, and body. Only GET is allowed unless the user allowed agent changes in the app.")]
+    [McpServerTool, Description("Replay an HTTP request with the specified method, URL, headers, and body. Returns the response status, duration, headers, and body. Only GET is allowed unless the user allowed agent changes in the app, and only hosts the user listed in the app are reached if the user set such a list.")]
     public static async Task<string> replay_request(
         IpcClient client,
         [Description("HTTP method (e.g., GET, POST, PUT, DELETE)")] string method,
@@ -120,7 +120,7 @@ public static class ReplayTools
         }
         catch (IpcApiException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
         {
-            // The app only lets agents replay GET until the user allows changes
+            // The app only lets agents replay GET until the user allows changes, and only to the hosts the user listed
             return $"The request was not sent: {ex.ApiError ?? ex.Message}";
         }
         catch (HttpRequestException ex)

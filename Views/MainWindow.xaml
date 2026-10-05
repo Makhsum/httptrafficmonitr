@@ -166,6 +166,14 @@
                                  ToolTip="Off: an agent connected over MCP can replay only GET requests and is not offered the tools that change the Auto-Responder. Only you can change this here."
                                  AutomationProperties.AutomationId="Toolbar.AgentChangesToggle"
                                  Margin="4,0"/>
+                <TextBlock Text="Agent replay hosts:" VerticalAlignment="Center" Margin="4,0,4,0"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}"/>
+                <ui:TextBox Width="200"
+                            PlaceholderText="Any host"
+                            Text="{Binding AgentReplayHosts, UpdateSourceTrigger=PropertyChanged, Delay=300}"
+                            ToolTip="Empty: an agent connected over MCP can replay to any host. Otherwise only to the hosts listed here, separated by commas; *.example.com allows its subdomains. Only you can change this here."
+                            AutomationProperties.AutomationId="Toolbar.AgentReplayHostsTextBox"
+                            Margin="0,0,4,0"/>
                 <ui:Button Icon="{ui:SymbolIcon Accessibility24}"
                            Command="{Binding ToggleBottomPanelCommand}"
                            ToolTip="Toggle Bottom Panel"
