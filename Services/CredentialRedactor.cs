@@ -385,10 +385,19 @@ namespace HttpTrafficMonitor.Services
         // The same for a single-quoted script string, var n = '{\\\"token\\\":\\\"value\\\"}': no double-quoted string stands
         // around it, so the quotes inside follow an odd run of backslashes and the rule above never pairs them. Only a string
         // holding a quote two levels deep, or one ASP.NET Core's encoder wrote as \u0022 (JSON.parse('{\u0022apiKey\u0022: ...}')),
-        // is unquoted; an apostrophe in prose pairs text that holds none
+        // is unquoted; an apostrophe in prose pairs text that holds none. A backslash before a line break continues the string
         private static readonly Regex ScriptStringQuotedTwice = new(
-            @"(?<=(?:^|[^\\])(?:\\\\)*)'(?<text>(?:[^'\\]|\\.)*)'",
+            @"(?<=(?:^|[^\\])(?:\\\\)*)'(?<text>(?:[^'\\]|\\(?:\r\n|[\s\S]))*)'",
             RegexOptions.Compiled);
+
+        // An escape only JavaScript reads makes a script string no JSON string: \x41, \u{1F600}, \0, \v, a backslash before a
+        // line break or before any other character. Each one waits behind a stand-in while the string is read and quoted back,
+        // and comes back as it was. JSON escapes are matched first, so in \\x41 the x is no escape
+        private static readonly Regex ScriptOnlyEscape = new(
+            @"\\(?:u[0-9A-Fa-f]{4}|[btnfr\\""'/])|(?<script>\\(?:x[0-9A-Fa-f]{2}|u\{[0-9A-Fa-f]+\}|\r\n|[\s\S]))",
+            RegexOptions.Compiled);
+
+        private static readonly Regex ScriptOnlyEscapeStandIn = new("(?<key>[0-9a-f]{32}):(?<index>\\d{1,9})", RegexOptions.Compiled);
 
         // The same for a string cut off before its closing quote, as a service that logs request bodies truncates them:
         // {"received": "{\"password\": \"s3cr... It runs to the end of the text or of its line, is closed for reading
@@ -588,6 +597,14 @@ namespace HttpTrafficMonitor.Services
             string text = m.Groups["text"].Value;
             if (quote == '\'' ? !text.Contains(QuoteTwoLevelsDeep) && !text.Contains(QuoteEscapedAsUnicode, StringComparison.OrdinalIgnoreCase)
                 : !text.Contains(QuoteTwoLevelsDeep) && !text.Contains(LineBreakTwoLevelsDeep) && !text.Contains(QuoteEscapedAsUnicode, StringComparison.OrdinalIgnoreCase)) return m.Value;
+            var scriptEscapes = new List<string>();
+            if (quote == '\'')
+                text = ScriptOnlyEscape.Replace(text, e =>
+                {
+                    if (!e.Groups["script"].Success) return e.Value;
+                    scriptEscapes.Add(e.Value);
+                    return "" + placeholderKey + ":" + (scriptEscapes.Count - 1) + "";
+                });
             // a raw line break or other control character never stands in a JSON string, only in text a stray quote paired
             // the wrong way, which quoting back would rewrite
             if (text.Any(c => c < ' ')) return m.Value;
@@ -610,7 +627,13 @@ namespace HttpTrafficMonitor.Services
             // or as \u0022
             string requoted = JsonConvert.ToString(redacted, quote);
             if (m.Groups["cut"].Success) requoted = requoted[..^1] + m.Groups["cut"].Value;
-            quotedTwice.Add(quote == '\'' ? requoted.Replace("\"", "\\\"") : requoted);
+            if (quote == '\'')
+                requoted = ScriptOnlyEscapeStandIn.Replace(requoted.Replace("\"", "\\\""), s =>
+                {
+                    int index = int.Parse(s.Groups["index"].Value);
+                    return s.Groups["key"].Value == placeholderKey && index < scriptEscapes.Count ? scriptEscapes[index] : s.Value;
+                });
+            quotedTwice.Add(requoted);
             return "\"\u0001" + placeholderKey + ":" + (quotedTwice.Count - 1) + "\u0001\"";
         }
 
