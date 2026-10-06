@@ -242,6 +242,10 @@ namespace HttpTrafficMonitor.Services
 
         private static readonly Regex CredentialHeaderName = new(@"^(?:" + CredentialHeaderNames + @")$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+        // The same as a request environment names them after its prefix, with an _ for each - (PROXY_AUTHORIZATION, X_API_KEY)
+        private static readonly string EnvironmentCredentialHeaderNames =
+            "authorization|proxy[-_]authorization|cookie|set-cookie|" + EnvironmentApiKeyHeaders;
+
         // Node's rawHeaders: one flat list alternating name and value, "rawHeaders": ["Authorization", "Bearer value", "Cookie", "sid=value"],
         // also rawTrailers; a value goes like in the header itself when the name before it is a credential header.
         // Only under these names, since a plain list of header names ("headers": ["Authorization", "Content-Type"]) is no such list
@@ -265,15 +269,47 @@ namespace HttpTrafficMonitor.Services
         // ASGI and Starlette list the headers as name/value pairs, "headers": [["authorization", "Bearer value"], ["cookie", "sid=value"]];
         // the value of a pair named after a credential header goes like in the header itself. Such a pair counts under any
         // property name (scope.headers, raw_headers) but only as an entry of a list of pairs, so a plain list of
-        // header names ("allowHeaders": ["Authorization", "Content-Type"]) stays
+        // header names ("allowHeaders": ["Authorization", "Content-Type"]) stays. A request environment Python lists as pairs,
+        // list(environ.items()), names them [["HTTP_AUTHORIZATION", "Bearer value"], ["HTTP_COOKIE", "sid=value"]]
         private static readonly Regex JsonHeaderPair = new(
-            @"(?<=\[\s*|\]\s*,\s*)(?<name>\[\s*""(?<header>" + CredentialHeaderNames + @")""\s*,\s*)""(?<value>(?:[^""\\]|\\.)*)""(?<end>\s*\])",
+            @"(?<=\[\s*|\]\s*,\s*)(?<name>\[\s*""" + EnvironmentPrefix + @"(?<header>" + EnvironmentCredentialHeaderNames + @")""\s*,\s*)""(?<value>(?:[^""\\]|\\.)*)""(?<end>\s*\])",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        // The same inside a JSON string, [\"authorization\", \"Bearer value\"]
+        // The same inside a JSON string, [\"authorization\", \"Bearer value\"], [\"HTTP_AUTHORIZATION\", \"Bearer value\"]
         private static readonly Regex EscapedJsonHeaderPair = new(
-            @"(?<=\[" + EscapedJsonSpace + @"|\]" + EscapedJsonSpace + "," + EscapedJsonSpace + @")(?<name>\[" + EscapedJsonSpace + @"\\""(?<header>" + CredentialHeaderNames + @")\\""" + EscapedJsonSpace + "," + EscapedJsonSpace + @")"
+            @"(?<=\[" + EscapedJsonSpace + @"|\]" + EscapedJsonSpace + "," + EscapedJsonSpace + @")(?<name>\[" + EscapedJsonSpace + @"\\""" + EnvironmentPrefix + @"(?<header>" + EnvironmentCredentialHeaderNames + @")\\""" + EscapedJsonSpace + "," + EscapedJsonSpace + @")"
                 + @"\\""(?<value>(?:\\\\\\.|\\\\[^""\\]|\\[^""\\]|[^""\\])*)\\""(?<end>" + EscapedJsonSpace + @"\])",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        // A request environment listed as name/value objects, [{"name": "HTTP_PROXY_AUTHORIZATION", "value": "Basic value"}];
+        // the "value" of an entry named after a credential header goes like in the header itself. Such an entry counts under
+        // any property name, but only with the HTTP_ prefix of the environment, so a plain {"name": "authorization"} stays.
+        // The match starts at the entry's name or at its "value", never at a brace, so a long body is not read once per brace;
+        // other members of the entry may stand between the two, but no other name or value
+        private static readonly string JsonEnvironmentEntryName =
+            @"""(?:name|key)""\s*:\s*""(?:redirect_)*http_(?<header>" + EnvironmentCredentialHeaderNames + @")""";
+
+        private const string JsonEnvironmentEntryMember =
+            @"\s*,\s*""(?!(?:name|key|value)"")(?:[^""\\]|\\.)*""\s*:\s*(?:""(?:[^""\\]|\\.)*""|-?\d[\d.eE+-]*|true|false|null)";
+
+        private static readonly Regex JsonEnvironmentEntryValue = new(
+            @"(?<name>" + JsonEnvironmentEntryName + "(?:" + JsonEnvironmentEntryMember + @")*\s*,\s*""value""\s*:\s*)(?<value>""(?:[^""\\]|\\.)*""|-?\d[\d.eE+-]*)"
+                + @"|(?<name>""value""\s*:\s*)(?<value>""(?:[^""\\]|\\.)*""|-?\d[\d.eE+-]*)(?=(?:" + JsonEnvironmentEntryMember + @")*\s*,\s*" + JsonEnvironmentEntryName + ")",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        // The same inside a JSON string, [{\"name\": \"HTTP_PROXY_AUTHORIZATION\", \"value\": \"Basic value\"}], also pretty-printed
+        private static readonly string EscapedJsonEnvironmentEntryName =
+            @"\\""(?:name|key)\\""" + EscapedJsonSpace + ":" + EscapedJsonSpace + @"\\""(?:redirect_)*http_(?<header>" + EnvironmentCredentialHeaderNames + @")\\""";
+
+        private const string EscapedJsonEnvironmentEntryMember =
+            EscapedJsonSpace + "," + EscapedJsonSpace + @"\\""(?!(?:name|key|value)\\"")(?:\\\\\\.|\\\\[^""\\]|\\[^""\\]|[^""\\])*\\""" + EscapedJsonSpace + ":" + EscapedJsonSpace
+                + @"(?:" + EscapedJsonStringValue + @"|-?\d[\d.eE+-]*|true|false|null)";
+
+        private static readonly Regex EscapedJsonEnvironmentEntryValue = new(
+            @"(?<name>" + EscapedJsonEnvironmentEntryName + "(?:" + EscapedJsonEnvironmentEntryMember + ")*" + EscapedJsonSpace + "," + EscapedJsonSpace + @"\\""value\\""" + EscapedJsonSpace + ":" + EscapedJsonSpace + @")"
+                + @"(?<value>" + EscapedJsonStringValue + @"|-?\d[\d.eE+-]*)"
+                + @"|(?<name>\\""value\\""" + EscapedJsonSpace + ":" + EscapedJsonSpace + @")(?<value>" + EscapedJsonStringValue + @"|-?\d[\d.eE+-]*)"
+                + "(?=(?:" + EscapedJsonEnvironmentEntryMember + ")*" + EscapedJsonSpace + "," + EscapedJsonSpace + EscapedJsonEnvironmentEntryName + ")",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // A header block held in one JSON string, "headers": "Authorization: Bearer value\nAccept: */*", as a Postman v1 collection
@@ -530,6 +566,16 @@ namespace HttpTrafficMonitor.Services
                 m.Groups["name"].Value + "\"" + RedactHeaderValue(m.Groups["header"].Value, m.Groups["value"].Value) + "\"" + m.Groups["end"].Value);
             redacted = EscapedJsonHeaderPair.Replace(redacted, m =>
                 m.Groups["name"].Value + "\\\"" + RedactHeaderValue(m.Groups["header"].Value, m.Groups["value"].Value) + "\\\"" + m.Groups["end"].Value);
+            redacted = JsonEnvironmentEntryValue.Replace(redacted, m =>
+            {
+                string value = m.Groups["value"].Value;
+                return m.Groups["name"].Value + "\"" + RedactHeaderValue(m.Groups["header"].Value, value.StartsWith("\"") ? value[1..^1] : value) + "\"";
+            });
+            redacted = EscapedJsonEnvironmentEntryValue.Replace(redacted, m =>
+            {
+                string value = m.Groups["value"].Value;
+                return m.Groups["name"].Value + "\\\"" + RedactHeaderValue(m.Groups["header"].Value, value.StartsWith("\\\"") ? value[2..^2] : value) + "\\\"";
+            });
             redacted = JsonHeaderTextLine.Replace(redacted, m =>
                 m.Groups["name"].Value + RedactHeaderValue(m.Groups["name"].Value.Trim().TrimEnd(':').Trim(), m.Groups["value"].Value));
             redacted = EscapedJsonHeaderTextLine.Replace(redacted, m =>
