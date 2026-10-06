@@ -6,9 +6,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 
 ## Released versions
 
+- [0.2.0](https://github.com/Makhsum/httptrafficmonitr/releases/tag/v0.2.0) — 2026-10-06, captured credentials and state-changing actions kept out of an agent's reach by default.
 - [0.1.0](https://github.com/Makhsum/httptrafficmonitr/releases/tag/v0.1.0) — 2026-10-04, the first release.
 
 ## [Unreleased]
+
+## [0.2.0] - 2026-10-06
 
 ### Security
 
@@ -25,6 +28,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - `save_session` no longer replaces an existing file while "Agent may make changes" is off: the app refuses a path that already exists with 403 and tells the agent to choose a new file name, so an agent can no longer overwrite a document or the user's own complete session with a redacted copy. Saving to a new file works by default; with the switch on, saving over an existing session works as before. Saving a session in the app window is not affected.
 - Web pages open in a browser can no longer use the app's local API on `localhost:18081`: it no longer sends `Access-Control-Allow-Origin: *`, and it refuses with 403 every request a browser marks as coming from a page (an `Origin` header, or `Sec-Fetch-Site` other than `none`), whether "Agent may make changes" is on or off. So a page can neither read captured traffic nor replay requests or change Auto-Responder rules. The MCP server and other programs on the computer are not affected.
 - The toolbar box "Agent replay hosts" limits which hosts `replay_request` may reach: once it lists hosts (`*.example.com` for subdomains), a replay to any other host is refused with a message naming that host. Empty, the default, keeps replay open to any host. No MCP tool can change the list, and the Replay window in the app is not limited by it.
+
+- Credentials an echo service, debug page or captured collection repeats inside a body stay hidden too: header and cookie lists in HAR, name/value or raw-header form, Postman collection and environment auth blocks and key/value lists (v1 and v2), request environment variables such as `HTTP_AUTHORIZATION` or `PHP_AUTH_PW` (also as lists of pairs or name/value objects), and JSON quoted one or two string levels deep, pretty-printed, escaped with `"` or written into a single-quoted script string, also when the body is an NDJSON stream, server-sent events or a text log, or cut off. Field names and the scheme word of an Authorization value stay readable, and the switch "Agent sees credentials" shows the values again.
 
 ### Fixed
 
@@ -86,5 +91,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and 
 - Loading a saved session brings back the alert rules it was saved with, so the Alerts tab and MCP `get_alert_rules` list them with their type and thresholds again and they fire on new traffic; before, only the requests, exclusions and SSL passthrough domains came back and the rules in place stayed. Sessions saved by earlier versions hold their alert rules too and bring them back the same way.
 - The Alerts tab refuses a rule that could never fire and says below the Add button what is wrong and what to use instead: a `Domain` or `Process` rule without a pattern, a pattern like `*.example.com`, which is matched as plain text and so never as a wildcard, a pattern with a leading or trailing space, a `Domain` pattern with a scheme or path such as `http://example.com/api`, or a `Process` pattern ending in `.exe`; before, the rule was added without a word and stayed silent on the traffic it was meant to catch. It is the same check MCP `add_alert_rule` applies. A `StatusCode`, `ResponseTime`, `RequestSize` or `ResponseSize` rule with a pattern is refused as well, because these rules do not read the pattern: one named for `404` with the pattern `404` watched status codes `500`–`599` and stayed silent on a 404; the message names what such a rule watches.
 
-[Unreleased]: https://github.com/Makhsum/httptrafficmonitr/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Makhsum/httptrafficmonitr/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Makhsum/httptrafficmonitr/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Makhsum/httptrafficmonitr/releases/tag/v0.1.0
