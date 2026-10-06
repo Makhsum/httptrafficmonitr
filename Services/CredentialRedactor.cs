@@ -67,9 +67,10 @@ namespace HttpTrafficMonitor.Services
                 + @"(?<value>(?:(?!%(?:25)*(?:26|23))(?:[^&#\s""'<>\\]|\\+u(?!0026|0023|0022|0027|003C|003E)[0-9A-F]{4}))+)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-        // The credential fields of a JSON body; "authorization" is left to JsonHeaderValues, which keeps its scheme word
+        // The credential fields of a JSON body; "authorization" is left to JsonHeaderValues, which keeps its scheme word;
+        // also "PHP_AUTH_PW", the Basic password a PHP server lists in $_SERVER
         private static readonly string[] JsonCredentialFields =
-            CredentialFields.Where(f => f != "authorization").Concat(ApiKeyHeaders).ToArray();
+            CredentialFields.Where(f => f != "authorization").Concat(ApiKeyHeaders).Append("php_auth_pw").ToArray();
 
         // A string value of a JSON body. A JSON string holds no raw line break, so a value that reaches one was cut off,
         // and the line after it stays a line of its own; only a value closed the way JSON closes one, before a comma or
@@ -93,11 +94,18 @@ namespace HttpTrafficMonitor.Services
         // must not leave the strings beside it readable
         private const string JsonArrayValue = @"(?:""(?:[^""\\]|\\.)*""|-?\d[\d.eE+-]*|null)";
 
+        // The name a CGI, WSGI or PHP server gives a request header in the request environment it lists: HTTP_ in front
+        // (HTTP_COOKIE), and REDIRECT_ in front of that for every internal redirect Apache's mod_rewrite made (REDIRECT_HTTP_AUTHORIZATION)
+        private const string EnvironmentPrefix = @"(?:(?:redirect_)*http_)?";
+
+        // The API-key headers as such an environment lists them, with an _ for each - (HTTP_X_API_KEY, HTTP_X_AUTH_TOKEN)
+        private static readonly string EnvironmentApiKeyHeaders = string.Join("|", ApiKeyHeaders.Select(h => Regex.Escape(h).Replace("-", "[-_]")));
+
         // A Cookie or Set-Cookie header a server echoes back as JSON ("Cookie": "session=value", also a list of
         // Set-Cookie strings, and "HTTP_COOKIE" as a CGI or PHP server lists it); each cookie keeps its name like in the header itself.
         // Like a credential field's, a value cut off at a raw line break is left to TruncatedJsonCredentialField
         private static readonly Regex JsonCookieField = new(
-            @"(?<name>""(?:http_)?(?<header>cookie|set-cookie)""\s*:\s*)(?<value>" + JsonStringValue + @"|\[\s*" + JsonArrayValue + @"(?:\s*,\s*" + JsonArrayValue + @")*\s*\])",
+            @"(?<name>""" + EnvironmentPrefix + @"(?<header>cookie|set-cookie)""\s*:\s*)(?<value>" + JsonStringValue + @"|\[\s*" + JsonArrayValue + @"(?:\s*,\s*" + JsonArrayValue + @")*\s*\])",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // A string inside a JSON string, \"value\"; a quote inside it arrives as \\\" and must not end it
@@ -107,7 +115,7 @@ namespace HttpTrafficMonitor.Services
 
         // The same inside a JSON string, \"Cookie\": \"session=value\", also \"cookie\": [\"session=value\"], also pretty-printed
         private static readonly Regex EscapedJsonCookieField = new(
-            @"(?<name>\\""(?:http_)?(?<header>cookie|set-cookie)\\""" + EscapedJsonSpace + ":" + EscapedJsonSpace + @")(?<value>" + EscapedJsonStringValue
+            @"(?<name>\\""" + EnvironmentPrefix + @"(?<header>cookie|set-cookie)\\""" + EscapedJsonSpace + ":" + EscapedJsonSpace + @")(?<value>" + EscapedJsonStringValue
                 + @"|\[" + EscapedJsonSpace + EscapedJsonArrayValue + @"(?:" + EscapedJsonSpace + "," + EscapedJsonSpace + EscapedJsonArrayValue + @")*" + EscapedJsonSpace + @"\])",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
@@ -117,13 +125,13 @@ namespace HttpTrafficMonitor.Services
         // also "HTTP_AUTHORIZATION" and "HTTP_PROXY_AUTHORIZATION" as a CGI, WSGI or PHP server lists the request environment;
         // a value cut off at a raw line break is left to TruncatedJsonCredentialField
         private static readonly Regex JsonHeaderValues = new(
-            @"(?<name>""(?:http_)?(?<header>authorization|proxy[-_]authorization|" + string.Join("|", ApiKeyHeaders.Select(Regex.Escape)) + @")""\s*:\s*)"
+            @"(?<name>""" + EnvironmentPrefix + @"(?<header>authorization|proxy[-_]authorization|" + EnvironmentApiKeyHeaders + @")""\s*:\s*)"
                 + @"(?<value>" + JsonStringValue + @"|-?\d[\d.eE+-]*|\[\s*" + JsonArrayValue + @"(?:\s*,\s*" + JsonArrayValue + @")*\s*\])",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // The same inside a JSON string, \"Authorization\": \"Bearer value\", \"authorization\": [\"Bearer value\"], \"HTTP_AUTHORIZATION\": \"Bearer value\", also pretty-printed
         private static readonly Regex EscapedJsonHeaderValues = new(
-            @"(?<name>\\""(?:http_)?(?<header>authorization|proxy[-_]authorization|" + string.Join("|", ApiKeyHeaders.Select(Regex.Escape)) + @")\\""" + EscapedJsonSpace + ":" + EscapedJsonSpace + @")"
+            @"(?<name>\\""" + EnvironmentPrefix + @"(?<header>authorization|proxy[-_]authorization|" + EnvironmentApiKeyHeaders + @")\\""" + EscapedJsonSpace + ":" + EscapedJsonSpace + @")"
                 + @"(?<value>" + EscapedJsonStringValue + @"|-?\d[\d.eE+-]*|\[" + EscapedJsonSpace + EscapedJsonArrayValue + @"(?:" + EscapedJsonSpace + "," + EscapedJsonSpace + EscapedJsonArrayValue + @")*" + EscapedJsonSpace + @"\])",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
@@ -132,7 +140,7 @@ namespace HttpTrafficMonitor.Services
         // a header value goes like in the header itself, so the scheme word of an Authorization value stays, also one cut off
         // in an array of values, "authorization": ["Bearer s3cr..., where the values before it go as well
         private static readonly Regex TruncatedJsonCredentialField = new(
-            @"(?<name>""(?:(?:http_)?(?<header>authorization|proxy[-_]authorization|cookie|set-cookie|" + string.Join("|", ApiKeyHeaders.Select(Regex.Escape)) + @")|"
+            @"(?<name>""(?:" + EnvironmentPrefix + @"(?<header>authorization|proxy[-_]authorization|cookie|set-cookie|" + EnvironmentApiKeyHeaders + @")|"
                 + string.Join("|", JsonCredentialFields.Select(Regex.Escape)) + "|" + PasswordLikeField + @")""\s*:\s*)"
                 + @"(?<items>(?(header)(?:\[\s*(?:" + JsonArrayValue + @"\s*,\s*)*)?))(?<quote>"")(?<value>(?:[^""\\\r\n]|\\.)*\\?)(?=\r?\n|$)",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -140,7 +148,7 @@ namespace HttpTrafficMonitor.Services
         // The same inside a JSON string, \"password\": \"s3cr..., cut off before the escaped closing quote: the value ends where
         // the string around it ends, at a quote after an even run of backslashes, or at the end of the text or of its line
         private static readonly Regex EscapedTruncatedJsonCredentialField = new(
-            @"(?<name>\\""(?:(?:http_)?(?<header>authorization|proxy[-_]authorization|cookie|set-cookie|" + string.Join("|", ApiKeyHeaders.Select(Regex.Escape)) + @")|"
+            @"(?<name>\\""(?:" + EnvironmentPrefix + @"(?<header>authorization|proxy[-_]authorization|cookie|set-cookie|" + EnvironmentApiKeyHeaders + @")|"
                 + string.Join("|", JsonCredentialFields.Select(Regex.Escape)) + "|" + PasswordLikeField + @")\\""" + EscapedJsonSpace + ":" + EscapedJsonSpace + ")"
                 + @"(?<items>(?(header)(?:\[" + EscapedJsonSpace + "(?:" + EscapedJsonArrayValue + EscapedJsonSpace + "," + EscapedJsonSpace + @")*)?))(?<quote>\\"")"
                 + @"(?<value>(?:\\\\\\[^\r\n]|\\\\[^""\\\r\n]|\\[^""\\\r\n]|[^""\\\r\n])*(?:(?:\\\\)*(?="")|\\*(?=\r?\n|$)))",
