@@ -337,8 +337,9 @@ namespace HttpTrafficMonitor.Services
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         // The same inside a JSON string, \"bearer\": [{\"key\": \"token\", \"value\": \"value\"}]; a pretty-printed collection
-        // arrives there with its line breaks escaped, [\n    {\"key\": ...},\n    {...}\n], also before the "[" and before the colon
-        private const string EscapedJsonSpace = @"(?:\s|\\[nrt])*";
+        // arrives there with its line breaks escaped, [\n    {\"key\": ...},\n    {...}\n], also before the "[" and before the colon;
+        // some encoders escape a line break or tab as \u000a, \u000d, \u0009, which a body that is no single JSON document keeps
+        private const string EscapedJsonSpace = @"(?:\s|\\[nrt]|\\u000[9aAdD])*";
 
         private static readonly Regex EscapedJsonPostmanList = new(
             @"(?<name>\\""(?<list>" + PostmanListKey + @")\\""" + EscapedJsonSpace + ":" + EscapedJsonSpace + @")(?<value>\[" + EscapedJsonSpace + EscapedJsonListEntry
